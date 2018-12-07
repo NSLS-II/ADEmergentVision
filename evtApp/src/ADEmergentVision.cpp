@@ -208,6 +208,37 @@ asynStatus ADEmergentVision::collectCameraInformation(){
 // -----------------------------------------------------------------------
 
 
+/**
+ * Function that gets frame format information from a captured frame from the camera
+ * 
+ * @params: frame       -> pointer to currently acquired frame
+ * @params: dataType    -> pointer to output data type
+ * @params: colorMode   -> pointer to output color mode
+ * @return: status    
+ */
+asynStatus ADEmergentVision::getFrameFormatND(CEmergentFrame* frame, NDDataType_t* dataType, NDColorMode_t* colorMode){
+    const char* functionName = "getFrameFormatND";
+    asynStatus status = asynSuccess;
+    unsigned int evtDepth = frame->GetPixBitDepth();
+    switch(evtDepth){
+        case PIX_BIT_DEPTH_8:
+            *dataType = NDUInt8;
+            break;
+        case PIX_BIT_DEPTH_16:
+            *dataType = NDUInt16;
+            break;
+        case PIX_BIT_DEPTH_MASK:
+        case PIX_BIT_DEPTH_SHIFT:
+        default:
+            //not a supported depth
+            *dataType = NDUInt8;
+            break;
+    }
+    //currently only mono images supported
+    *colorMode = NDColorModeMono;
+    return status;
+}
+
 
 // -----------------------------------------------------------------------
 // ADEmergentVision ADDriver Overrides (WriteInt32/WriteFloat64/report)
