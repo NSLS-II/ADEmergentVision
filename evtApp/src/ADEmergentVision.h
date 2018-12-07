@@ -42,7 +42,7 @@ class ADEmergentVision : ADDriver {
     public:
 
         // constructor
-        ADEmergentVision(const char* portName, int maxBuffers, size_t maxMemory, int priority, int stackSize);
+        ADEmergentVision(const char* portName, const char* serialNumber, int maxBuffers, size_t maxMemory, int priority, int stackSize);
 
         // ADDriver overrides
         virtual asynStatus writeInt32(asynUser* pasynUser, epicsInt32 value);
@@ -66,10 +66,9 @@ class ADEmergentVision : ADDriver {
     // ----------------------------
 
     EVT_ERROR evt_status;
-    CEmergentCamera* pdevice;
+    CEmergentCamera* pcamera;
     struct GigEVisionDeviceInfo* pdeviceInfo;
-
-    int connected = 0;
+    
     int withShutter = 0;
 
 
@@ -80,12 +79,13 @@ class ADEmergentVision : ADDriver {
     asynStatus getDeviceInformation();
     void report(FILE* fp, int details);
     void reportEVTError(EVT_ERROR status, const char* functionName);
+    void printConnectedDeviceInfo();
 
     // ---------------------------
     // EVT Functions for connecting to camera
     // ---------------------------
 
-    asynStatus connectToDeviceEVT();
+    asynStatus connectToDeviceEVT(const char* serialNumber);
     asynStatus disconnectFromDeviceEVT();
 
 

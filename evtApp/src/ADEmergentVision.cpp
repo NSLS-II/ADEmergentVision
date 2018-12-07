@@ -61,8 +61,8 @@ static const double ONE_BILLION = 1.E9;
  * @params: all passed into constructor
  * @return: status
  */
-extern "C" int ADEmergentVisionConfig(const char* portName, int maxBuffers, size_t maxMemory, int priority, int stackSize){
-    new ADEmergentVision(portName, maxBuffers, maxMemory, priority, stackSize);
+extern "C" int ADEmergentVisionConfig(const char* portName, const char* serialNumber, int maxBuffers, size_t maxMemory, int priority, int stackSize){
+    new ADEmergentVision(portName, serialNumber, maxBuffers, maxMemory, priority, stackSize);
     return(asynSuccess);
 }
 
@@ -92,11 +92,40 @@ void ADEmergentVision::reportEVTError(EVT_ERROR status, const char* functionName
 }
 
 
+/**
+ * Simple function that prints all gigeVision information about a connected camera
+ * 
+ * @return: void
+ */
+void ADEmergentVision::printConnectedDeviceInfo(){
+    printf("--------------------------------------\n");
+    printf("Connected to EVT device\n");
+    printf("--------------------------------------\n");
+    printf("Specification: %d.%d\n", this->pdeviceInfo->specVersionMajor, this->pdeviceInfo->specVersionMinor);
+    printf("Device mode: %d, Device Version: %s\n", this->pdeviceInfo->deviceMode, this->pdeviceInfo->deviceVersion);
+    printf("ManufacturerName: %s, Model name %s\n", this->pdeviceInfo->manufacturerName, this->pdeviceInfo->modelName);
+    printf("IP: %s, Mask %s\n",this->pdeviceInfo->currentIp, this->pdeviceInfo->currentSubnetMask);
+    printf("MAC address: %s\n", this->pdeviceInfo->macAddress);
+    printf("Serial: %s, User Name: %s\n", this->pdeviceInfo->serialNumber, this->pdeviceInfo->userDefinedName);
+    printf("Manufacturer Specific Information: %s\n", this->pdeviceInfo->manufacturerSpecifiedInfo);
+}
+
+
 // -----------------------------------------------------------------------
 // ADEmergentVision Connect/Disconnect Functions
 // -----------------------------------------------------------------------
 
 
+/**
+ * Function that is used to initialize and connect to the EVT camera device.
+ * First, it computes a list of all gige vision devices connected to the network.
+ * It searches through these devices and searches for the one with the serial number 
+ * passed to the function. Then, the camera open function is called to initalize the
+ * camera object itself.
+ * 
+ * @params: serialNumber    -> serial number of camera to connect to. Passed through IOC shell
+ * @return: status          -> success if connected, error if not connected
+ */
 asynStatus ADEmergentVision::connectToDeviceEVT(const char* serialNumber){
     const char* functionName = "connectToDeviceEVT()";
     unsigned int count, numCameras;
@@ -122,19 +151,38 @@ asynStatus ADEmergentVision::connectToDeviceEVT(const char* serialNumber){
         }
         if(pdeviceInfo == NULL){
             asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Could not find camera with specified serial number\n", driverName, functionName);
+            return asynError;
+        }
+        else{
+            printConnectedDeviceInfo();
+            this->evt_status = EVT_CameraOpen(this->pcamera, this->pdeviceInfo);
+            if(this->evt_status != EVT_SUCCESS){
+                reportEVTError(this->evt_status, functionName);
+                return asynError;
+            }
+            return asynSuccess;
         }
     }
 }
 
+
+/**
+ * Function that disconnects from any connected EVT device
+ * First checks if is connected, then if it is, it frees the memory
+ * for the info and the camera
+ * 
+ * @return: status  -> success if freed, error if never connected
+ */
 asynStatus ADEmergentVision::disconnectFromDeviceEVT(){
     const char* functionName = "disconnectFromDeviceEVT";
-    if(this->pdeviceInfo == NULL || this->pdevice == NULL){
+    if(this->pdeviceInfo == NULL || this->pcamera == NULL){
         asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Never connected to device\n", driverName, functionName);
         return asynError;
     }
     else{
         free(this->pdeviceInfo);
-        EVT_CameraClose(pdevice);
+        EVT_CameraClose(pcamera);
+        return asynSuccess;
     }
 }
 
