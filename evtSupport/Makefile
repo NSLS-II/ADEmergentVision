@@ -21,3 +21,9 @@ endif
 include $(TOP)/configure/RULES
 #----------------------------------------
 #  ADD RULES AFTER THIS LINE
+
+# Note, the following files were manually copied from the Prosilica GigESDK/bin-pc directory
+# to this directory after building
+
+
+
