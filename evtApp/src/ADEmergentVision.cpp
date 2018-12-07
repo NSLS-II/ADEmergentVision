@@ -186,6 +186,23 @@ asynStatus ADEmergentVision::disconnectFromDeviceEVT(){
     }
 }
 
+
+/**
+ * Function that updates PV values with camera information
+ * 
+ * @return: status
+ */
+asynStatus ADEmergentVision::collectCameraInformation(){
+    const char* functionName = "collectCameraInformation";
+    asynStatus status = asynSuccess;
+    setStringParam(ADManufacturer, this->pdeviceInfo->manufacturerName);
+    setStringParam(ADSerialNumber, this->pdeviceInfo->serialNumber);
+    setStringParam(ADFirmwareVersion,this->pdeviceInfo->deviceVersion);
+    setStringParam(ADModel, this->pdeviceInfo->modelName);
+    return status;
+}
+
+
 // -----------------------------------------------------------------------
 // ADEmergentVision Acquisition Functions
 // -----------------------------------------------------------------------
@@ -201,7 +218,34 @@ asynStatus ADEmergentVision::disconnectFromDeviceEVT(){
 // -----------------------------------------------------------------------
 
 
+ADEmergentVision::ADEmergentVision(const char* portName, const char* serialNumber, int maxBuffers, size_t maxMemory, int priority, int stackSize)
+    : ADDriver(portName, 1, (int)NUM_EVT_PARAMS, maxBuffers, maxMemory, asynEnumMask, asynEnumMask, ASYN_CANBLOCK, 1, priority, stackSize){
+    
+    asynStatus status;
 
+    const char* functionName = "ADEmergentVision";
+    char evtVersionString[25];
+    epicsSnprintf(evtVersionString, sizeof(evtVersionString), "%s", EVT_SDKVersion);
+    setStringParam(ADSDKVersion, evtVersionString);
+
+    char versionString[25];
+    epicsSnprintf(versionString, sizeof(versionString), "%d.%d.%d", ADEMERGENTVISION_VERSION, ADEMERGENTVISION_REVISION, ADEMERGENTVISION_MODIFICATION);
+    setStringParam(NDDriverVersion, versionString);
+
+    if(strlen(serialNumber) == 0){
+        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error: invalid serial number passed\n", driverName, functionName);
+        status = asynError;
+    }
+    else{
+        status = connectToDeviceEVT(serialNumber);
+    }
+    if(status == asynSuccess) collectCameraInformation();
+
+    epicsAtExit(exitCallbackC, this);
+}
+
+
+/* ADEmergentVision Destructor */
 ADEmergentVision::~ADEmergentVision(){
     const char* functionName = "~ADEmergentVision";
     disconnectFromDeviceEVT();

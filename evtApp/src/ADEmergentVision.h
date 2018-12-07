@@ -55,9 +55,9 @@ class ADEmergentVision : ADDriver {
 
         // PV indexes
 
-        #define ADEVT_FIRST_PARAM   
+        #define ADEVT_FIRST_PARAM   0
 
-        #define AD_EVT_LAST_PARAM
+        #define ADEVT_LAST_PARAM   1
 
     private:
 
@@ -68,7 +68,7 @@ class ADEmergentVision : ADDriver {
     EVT_ERROR evt_status;
     CEmergentCamera* pcamera;
     struct GigEVisionDeviceInfo* pdeviceInfo;
-    
+
     int withShutter = 0;
 
 
@@ -87,7 +87,7 @@ class ADEmergentVision : ADDriver {
 
     asynStatus connectToDeviceEVT(const char* serialNumber);
     asynStatus disconnectFromDeviceEVT();
-
+    asynStatus collectCameraInformation();
 
     // -----------------------------
     // EVT Camera Functions
