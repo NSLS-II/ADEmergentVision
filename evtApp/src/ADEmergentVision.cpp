@@ -211,6 +211,8 @@ asynStatus ADEmergentVision::collectCameraInformation(){
 /**
  * Function that gets frame format information from a captured frame from the camera
  * 
+ * TODO: This function needs to be reworked
+ * 
  * @params: frame       -> pointer to currently acquired frame
  * @params: dataType    -> pointer to output data type
  * @params: colorMode   -> pointer to output color mode
@@ -238,6 +240,62 @@ asynStatus ADEmergentVision::getFrameFormatND(CEmergentFrame* frame, NDDataType_
     *colorMode = NDColorModeMono;
     return status;
 }
+
+
+/**
+ * Function that allocates space for a new NDArray and copies the data from the captured EVT frame
+ * 
+ * NDArray dimensions depend on the color mode and data type.
+ * 
+ * 
+ */
+asynStatus ADEmergentVision::evtFrame2NDArray(CEmergentFrame* frame, NDArray* pArray){
+    const char* functionName = "evtFrame2NDArray";
+    asynStatus status = asynSuccess;
+    int ndims;
+    NDDataType_t dataType;
+    NDColorMode_t colorMode;
+    NDArrayInfo arrayInfo;
+    int xsize;
+    int ysize;
+    status = getFrameFormatND(frame, &dataType, &colorMode);
+    if(status = asynError){
+        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error computing dType and color mode\n", driverName, functionName);
+        return asynError;
+    }
+    else{
+        xsize = frame->size_x;
+        ysize = frame->size_y;
+        if(colorMode == NDColorModeMono) ndims = 2;
+        else ndims = 3;
+
+        size_t dims[ndims];
+        if(ndims == 2){
+            dims[0] = xsize;
+            dims[1] = ysize;
+        }
+        else{
+            dims[0] = 3;
+            dims[1] = xsize;
+            dims[2] = ysize;
+        }
+
+        this->pArrays[0] = pNDArrayPool->alloc(ndims, dims, dataType, 0, NULL);
+        if(this->pArrays[0]!=NULL) pArray = this->pArrays[0];
+        else{
+            this->pArrays[0]->release();
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Unable to allocate array\n", driverName, functionName);
+	        return asynError;
+        }    
+        pArray->getInfo(&arrayInfo);
+        size_t total_size = arrayInfo.totalBytes;
+        memcpy((unsigned char*)pArray->pData, frame->imagePtr, total_size);
+        pArray->pAttributeList->add("ColorMode", "Color Mode", NDAttrInt32, &colorMode);
+        getAttributes(pArray->pAttributeList);
+        return asynSuccess;
+    }
+}
+
 
 
 // -----------------------------------------------------------------------
