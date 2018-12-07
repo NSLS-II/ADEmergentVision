@@ -33,6 +33,16 @@ using namespace Emergent;
 
 // PV Definitions
 
+#define ADEVT_PixelFormatString             "EVT_PIXEL_FORMAT"         //asynParamInt32
+#define ADEVT_FramerateString               "EVT_FRAMERATE"            //asynParamInt32
+#define ADEVT_OffsetXString                 "EVT_OFFX"                 //asynParamInt32
+#define ADEVT_OffsetYString                 "EVT_OFFY"                 //asynParamInt32
+#define ADEVT_BufferModeString              "EVT_BUFF_MODE"            //asynParamInt32
+#define ADEVT_BufferNumString               "EVT_BUFF_NUM"             //asynParamInt32
+#define ADEVT_PacketSizeString              "EVT_PACKET"               //asynParamInt32
+#define ADEVT_LUTEnableString               "EVT_LUT"                  //asynParamInt32
+#define ADEVT_AutoGainString                "EVT_AUTOGAIN"             //asynParamInt32
+
 
 // enum type definitions
 
@@ -54,10 +64,17 @@ class ADEmergentVision : ADDriver {
     protected:
 
         // PV indexes
-
-        #define ADEVT_FIRST_PARAM   0
-
-        #define ADEVT_LAST_PARAM   1
+        int ADEVT_PixelFormat;
+        #define ADEVT_FIRST_PARAM   ADEVT_PixelFormat
+        int ADEVT_Framerate;
+        int ADEVT_OffsetX;
+        int ADEVT_OffsetY;
+        int ADEVT_BufferMode;
+        int ADEVT_BufferNum;
+        int ADEVT_PacketSize;
+        int ADEVT_LUTEnable;
+        int ADEVT_AutoGain;
+        #define ADEVT_LAST_PARAM   ADEVT_AutoGain
 
     private:
 

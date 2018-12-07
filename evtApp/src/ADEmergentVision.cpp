@@ -240,6 +240,17 @@ ADEmergentVision::ADEmergentVision(const char* portName, const char* serialNumbe
         status = connectToDeviceEVT(serialNumber);
     }
     if(status == asynSuccess) collectCameraInformation();
+    
+    // Create PV Parameters
+    createParam(ADEVT_PixelFormatString,        asynParamInt32,     &ADEVT_PixelFormat);
+    createParam(ADEVT_FramerateString,          asynParamInt32,     &ADEVT_Framerate);
+    createParam(ADEVT_OffsetXString,            asynParamInt32,     &ADEVT_OffsetX);
+    createParam(ADEVT_OffsetYString,            asynParamInt32,     &ADEVT_OffsetY);
+    createParam(ADEVT_BufferModeString,         asynParamInt32,     &ADEVT_BufferMode);
+    createParam(ADEVT_BufferNumString,          asynParamInt32,     &ADEVT_BufferNum);
+    createParam(ADEVT_PacketSizeString,         asynParamInt32,     &ADEVT_PacketSize);
+    createParam(ADEVT_LUTEnableString,          asynParamInt32,     &ADEVT_LUTEnable);
+    createParam(ADEVT_AutoGainString,           asynParamInt32,     &ADEVT_AutoGain);
 
     epicsAtExit(exitCallbackC, this);
 }
