@@ -495,6 +495,10 @@ void ADEmergentVision::evtCallback(){
         //EVT_ERROR err2 = EVT_FrameSave(&frames[0], "random_test.tif", EVT_FILETYPE_TIF, EVT_ALIGN_NONE);
         
         status = evtFrame2NDArray(frames, pArray);
+        EVT_ReleaseFrameBuffer(this->pcamera, &frames[0]);
+        imageCounter++;
+        setIntegerParam(ADNumImagesCounter, imageCounter);
+        printf("Num Images: %d\n", imageCounter);
         printf("gets past conversion process\n");
         if(status == asynError){
             asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error converting to NDArray\n", driverName, functionName);
@@ -506,10 +510,10 @@ void ADEmergentVision::evtCallback(){
             asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Done\n", driverName, functionName);
         }
         else if(imageMode == ADImageMultiple){
+            printf("thinks it is multiple\n");
             int numImages;
             getIntegerParam(ADNumImages, &numImages);
-            imageCounter++;
-            setIntegerParam(ADNumImagesCounter, imageCounter);
+            
             if(imageCounter == numImages){
                 imageCollectionThreadActive = 0;
                 asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Done\n", driverName, functionName);
