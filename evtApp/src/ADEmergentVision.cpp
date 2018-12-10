@@ -378,6 +378,77 @@ asynStatus ADEmergentVision::evtFrame2NDArray(CEmergentFrame* frame, NDArray* pA
 // -----------------------------------------------------------------------
 
 
+/*
+ * Function overwriting ADDriver base function.
+ * Takes in a function (PV) changes, and a value it is changing to, and processes the input
+ *
+ * @params[in]: pasynUser       -> asyn client who requests a write
+ * @params[in]: value           -> int32 value to write
+ * @return:     asynStatus      -> success if write was successful, else failure
+ */
+asynStatus ADEmergentVision::writeInt32(asynUser* pasynUser, epicsInt32 value){
+    int function = pasynUser->reason;
+    int acquiring;
+    asynStatus status = asynSuccess;
+    const char* functionName = "writeInt32";
+    getIntegerParam(ADAcquire, &acquiring);
+
+    status = setIntegerParam(function, value);
+    if(status != asynSuccess){
+        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error writing to PV\n", driverName, functionName);
+        return status;
+    }
+    else{
+        if(function == ADAcquire){
+            if(value && !acquiring){
+                status = acquireStart();
+            }
+            else if (!value && acquiring){
+                status = acquireStop();
+            }
+        }
+        else if(function == ADImageMode){
+            if(acquiring) acquireStop();
+            if(value == ADImageSingle) setIntegerParam(ADNumImages, 1);
+            else if(value == ADImageMultiple) setIntegerParam(ADNumImages, 100);
+        }
+        else if(function < ADEVT_FIRST_PARAM){
+            status = ADDriver::writeInt32(pasynUser, value);
+        }
+    }
+    callParamCallbacks();
+    if(status == asynError) asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s ERROR status=%d, function=%d, value=%d\n", driverName, functionName, status, function, value);
+    else asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s function=%d value=%d\n", driverName, functionName, function, value);
+    return status;
+}
+
+
+/*
+ * Function overwriting ADDriver base function.
+ * Takes in a function (PV) changes, and a value it is changing to, and processes the input
+ * This is the same functionality as writeInt32, but for processing doubles.
+ *
+ * @params[in]: pasynUser       -> asyn client who requests a write
+ * @params[in]: value           -> float64 value to write
+ * @return:     asynStatus      -> success if write was successful, else failure
+ */
+asynStatus ADEmergentVision::writeFloat64(asynUser* pasynUser, epicsFloat64 value){
+    int function = pasynUser->reason;
+    int acquiring;
+    asynStatus status = asynSuccess;
+    const char* functionName = "writeFloat64";
+    getIntegerParam(ADAcquire, &acquiring);
+
+    status = setIntegerParam(function, value);
+    if(function < ADEVT_FIRST_PARAM){
+        status = ADDriver::writeFloat64(pasynUser, value);
+    }
+    callParamCallbacks();
+    if(status == asynError) asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s ERROR status=%d, function=%d, value=%d\n", driverName, functionName, status, function, value);
+    else asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s function=%d value=%d\n", driverName, functionName, function, value);
+    return status;
+}
+
 
 // -----------------------------------------------------------------------
 // ADEmergentVision Constructor/Destructor
@@ -441,9 +512,11 @@ ADEmergentVision::~ADEmergentVision(){
     disconnect(this->pasynUserSelf);
 }
 
+
 // -----------------------------------------------------------------------
 // ADEmergentVision IOC Shell Registration Functions
 // -----------------------------------------------------------------------
+
 
 /* UVCConfig -> These are the args passed to the constructor in the epics config function */
 static const iocshArg EVTConfigArg0 = { "Port name",        iocshArgString };
