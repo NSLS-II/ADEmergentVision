@@ -25,6 +25,7 @@
 #include <EmergentCameraAPIs.h>
 #include <EvtParamAttribute.h>
 #include <gigevisiondeviceinfo.h>
+#include <emergentcameradef.h>
 #include "ADDriver.h"
 
 using namespace std;

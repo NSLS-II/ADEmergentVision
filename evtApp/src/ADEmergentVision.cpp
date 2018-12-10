@@ -361,10 +361,11 @@ asynStatus ADEmergentVision::acquireStop(){
 asynStatus ADEmergentVision::getFrameFormatND(CEmergentFrame* frame, NDDataType_t* dataType, NDColorMode_t* colorMode){
     const char* functionName = "getFrameFormatND";
     asynStatus status = asynSuccess;
-    unsigned int evtDepth = frame->GetPixBitDepth();
+    unsigned int evtDepth = frame->pixel_type;
     switch(evtDepth){
-        case PIX_BIT_DEPTH_8:
+        case GVSP_PIX_MONO8:
             *dataType = NDUInt8;
+            *colorMode = NDColorModeMono;
             break;
         case PIX_BIT_DEPTH_16:
             *dataType = NDUInt16;
@@ -437,6 +438,8 @@ asynStatus ADEmergentVision::evtFrame2NDArray(CEmergentFrame* frame, NDArray* pA
         memcpy((unsigned char*)pArray->pData, frame->imagePtr, total_size);
         pArray->pAttributeList->add("ColorMode", "Color Mode", NDAttrInt32, &colorMode);
         getAttributes(pArray->pAttributeList);
+        doCallbacksGenericPointer(pArray, NDArrayData, 0);
+        pArray->release();
         return asynSuccess;
     }
 }
@@ -456,7 +459,7 @@ void* ADEmergentVision::evtCallbackWrapper(void* pPtr){
 void ADEmergentVision::evtCallback(){
     const char* functionName = "evtCallback";
 
-    while(this->imageCollectionThreadActive == -1){
+    while(this->imageCollectionThreadActive == 1){
         NDArray* pArray;
         //NDArrayInfo arrayInfo;
         CEmergentFrame frames[NUM_FRAMES];
@@ -468,35 +471,35 @@ void ADEmergentVision::evtCallback(){
         getIntegerParam(ADNumImagesCounter, &imageCounter);
         getIntegerParam(ADSizeX, &xsize);
         getIntegerParam(ADSizeY, &ysize);
-
+        printf("running acquire start command\n");
         EVT_CameraExecuteCommand(this->pcamera, "AcquisitionStart");
 
         frames[0].size_x = xsize;
         frames[0].size_y = ysize;
         frames[0].pixel_type = GVSP_PIX_MONO8;
 
+        printf("allocating frame buffer command\n");
         EVT_ERROR err = EVT_AllocateFrameBuffer(this->pcamera, &frames[0], EVT_FRAME_BUFFER_ZERO_COPY);
         if(err != EVT_SUCCESS) reportEVTError(err, functionName);
         else{
             EVT_CameraQueueFrame(this->pcamera, &frames[0]);
         }
 
+        printf("triggering w/ software\n");
         EVT_CameraExecuteCommand(this->pcamera, "TriggerSoftware");
 
         EVT_CameraGetFrame(this->pcamera, &frames[0], EVT_INFINITE);
 
         EVT_CameraExecuteCommand(&camera, "AcquisitionStop");
+
+        //EVT_ERROR err2 = EVT_FrameSave(&frames[0], "random_test.tif", EVT_FILETYPE_TIF, EVT_ALIGN_NONE);
         
         status = evtFrame2NDArray(frames, pArray);
+        printf("gets past conversion process\n");
         if(status == asynError){
             asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error converting to NDArray\n", driverName, functionName);
             imageCollectionThreadActive = 0;
             break;
-        }
-        else{
-            doCallbacksGenericPointer(pArray, NDArrayData, 0);
-            pArray->release();
-
         }
         if(imageMode == ADImageSingle){
             imageCollectionThreadActive = 0;
@@ -512,13 +515,16 @@ void ADEmergentVision::evtCallback(){
                 asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Done\n", driverName, functionName);
             }
         }
+        printf("done with first loop iteration\n");
     }
+    /*
     while(this->imageCollectionThreadActive == 1){
         //testing the threading before camera stuff gets tested
         test_counter++;
         epicsThreadSleep(5);
         printf("%d\n", test_counter);
     }
+    */
 }
 
 
