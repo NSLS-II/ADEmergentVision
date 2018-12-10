@@ -24,3 +24,26 @@ EVTINSTALL
 |--uninstall_eSdk.sh
 ```
 Simply run the install_eSdk.sh script, and the eSDK will be installed on your computer in the /opt/EVT directory. You must now move the libs and includes required by the eSDK into the appropriate locations for the EPICS build path.
+
+To do this, run the following commands:
+```
+mkdir include
+mkdir os
+cd os
+mkdir linux-x86_64
+cd ..
+```
+If you are on a different architecture than 64 bit linux, change these commands to fit your ARCH.  
+Next, copy the contents of the $(EMERGENT_DIR)/eSDK/include directory to the include folder you
+just created. Then, copy the contents of $(EMERGENT_DIR)/eSDK/lib to the os/linux-x86_64 directory,
+or whichever one you created for your ARCH.  
+Finally, you may have to edit the Makefile in evtSupport, if the versions of the libraries you built are different
+than those used to write the driver.  
+Simply edit:
+``
+INC += INCLUDE_FILENAME
+LIB_INSTALLS_ARCH += LIBRARY_NAME
+```
+lines to contain the correct filenames that are provided with your eSDK download.
+
+Once this is done, you should be ready to compile the ADEmergentVision driver.
