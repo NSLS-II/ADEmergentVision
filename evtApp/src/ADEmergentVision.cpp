@@ -58,8 +58,8 @@ static const double ONE_BILLION = 1.E9;
  * Envokes the constructor to create a new ADEmergentVision object
  * This is the function that initializes the driver, and is called in the IOC startup script
  *
- * @params: all passed into constructor
- * @return: status
+ * @params[in]: all passed into constructor
+ * @return:     status
  */
 extern "C" int ADEmergentVisionConfig(const char* portName, const char* serialNumber, int maxBuffers, size_t maxMemory, int priority, int stackSize){
     new ADEmergentVision(portName, serialNumber, maxBuffers, maxMemory, priority, stackSize);
@@ -71,7 +71,8 @@ extern "C" int ADEmergentVisionConfig(const char* portName, const char* serialNu
  * Callback function called when IOC is terminated.
  * Deletes created object
  *
- * @params: pPvt -> pointer to the ADEmergentVision object created in ADUVCConfig
+ * @params[in]: pPvt -> pointer to the ADEmergentVision object created in ADUVCConfig
+ * @return:     void
  */
 static void exitCallbackC(void* pPvt){
     ADEmergentVision* pEVT = (ADEmergentVision*) pPvt;
@@ -82,8 +83,8 @@ static void exitCallbackC(void* pPvt){
 /**
  * Function that reports error encountered in vendor library from EVT
  * 
- * @params: status          -> error code
- * @params: functionName    -> function in which error occured
+ * @params[in]: status          -> error code
+ * @params[in]: functionName    -> function in which error occured
  * @return: void
  */
 void ADEmergentVision::reportEVTError(EVT_ERROR status, const char* functionName){
@@ -123,8 +124,8 @@ void ADEmergentVision::printConnectedDeviceInfo(){
  * passed to the function. Then, the camera open function is called to initalize the
  * camera object itself.
  * 
- * @params: serialNumber    -> serial number of camera to connect to. Passed through IOC shell
- * @return: status          -> success if connected, error if not connected
+ * @params[in]: serialNumber    -> serial number of camera to connect to. Passed through IOC shell
+ * @return:     status          -> success if connected, error if not connected
  */
 asynStatus ADEmergentVision::connectToDeviceEVT(const char* serialNumber){
     const char* functionName = "connectToDeviceEVT()";
@@ -209,14 +210,80 @@ asynStatus ADEmergentVision::collectCameraInformation(){
 
 
 /**
+ * Function responsible for starting camera image acqusition. First, check if there is a
+ * camera connected. Then, set camera values by reading from PVs. Then, we execute the 
+ * Acquire Start command. if this command was successful, image acquisition started.
+ * 
+ * @return: status  -> error if no device, camera values not set, or execute command fails. Otherwise, success
+ */
+asynStatus ADEmergentVision::acquireStart(){
+    const char* functionName = "acquireStart";
+    asynStatus status;
+    if(this->pcamera == NULL){
+        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error: No camera connected\n", driverName, functionName);
+        status = asynError;
+    }
+    else{
+        status = setCameraValues();
+        if(status != asynSuccess) asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error: setting camera values\n", driverName, functionName);
+        else{
+            this->evt_status = EVT_CameraExecuteCommand(this->pcamera, "AcquisitionStart");
+            if(this->evt_status != EVT_SUCCESS){
+                reportEVTError(this->evt_status, functionName);
+                setIntegerParam(ADAcquire, 0);
+                setIntegerParam(ADStatus, ADStatusIdle);
+                callParamCallbacks();
+                status = asynError;
+            }
+            else{
+                setIntegerParam(ADStatus, ADStatusAcquire);
+                asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Image acquistion start\n", driverName, functionName);
+                callParamCallbacks();
+            }
+
+        }
+    }
+    return status;
+}
+
+
+/**
+ * Function responsible for stopping camera image acquisition. First check if the camera is connected.
+ * If it is, execute the 'AcquireStop' command. Then set the appropriate PV values, and callParamCallbacks
+ * 
+ * @return: status  -> error if no camera or command fails to execute, success otherwise
+ */ 
+asynStatus ADEmergentVision::acquireStop(){
+    const char* functionName = "acquireStop";
+    asynStatus status;
+    if(this->pcamera == NULL){
+        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error: No camera connected\n", driverName, functionName);
+        status = asynError;
+    }
+    else{
+        this->evt_status = EVT_CameraExecuteCommand(this->pcamera, "AcquisitionStop");
+        if(this->evt_status != EVT_SUCCESS){
+            reportEVTError(this->evt_status, functionName);
+            status = asynError;
+        }
+        else status = asynSuccess;
+    }
+    setIntegerParam(ADStatus, ADStatusIdle);
+    setIntegerParam(ADAcquire, 0);
+    callParamCallbacks();
+    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Stopping Image Acquisition\n", driverName, functionName);
+    return status;
+}
+
+/**
  * Function that gets frame format information from a captured frame from the camera
  * 
  * TODO: This function needs to be reworked
  * 
- * @params: frame       -> pointer to currently acquired frame
- * @params: dataType    -> pointer to output data type
- * @params: colorMode   -> pointer to output color mode
- * @return: status    
+ * @params[in]:     frame       -> pointer to currently acquired frame
+ * @params[out]:    dataType    -> pointer to output data type
+ * @params[out]:    colorMode   -> pointer to output color mode
+ * @return:         status       
  */
 asynStatus ADEmergentVision::getFrameFormatND(CEmergentFrame* frame, NDDataType_t* dataType, NDColorMode_t* colorMode){
     const char* functionName = "getFrameFormatND";
@@ -245,9 +312,13 @@ asynStatus ADEmergentVision::getFrameFormatND(CEmergentFrame* frame, NDDataType_
 /**
  * Function that allocates space for a new NDArray and copies the data from the captured EVT frame
  * 
- * NDArray dimensions depend on the color mode and data type.
+ * NDArray dimensions depend on the color mode and data type. Run getFrameFormatND to get these.
+ * Next, we allocate space for the NDArray. Then, we copy the image data from the Emergent Frame
+ * to the NDArray. Then we set the attributes of the new NDArray to the appropriate dtype and color mode.
  * 
- * 
+ * @params[in]:     frame   -> frame recieved from Emergent Vision Camera
+ * @params[out]:    pArray  -> NDArray output that is pushed out to ArrayData PV
+ * @return:         status  -> success if copied, error if alloc/copy failed
  */
 asynStatus ADEmergentVision::evtFrame2NDArray(CEmergentFrame* frame, NDArray* pArray){
     const char* functionName = "evtFrame2NDArray";
@@ -296,6 +367,10 @@ asynStatus ADEmergentVision::evtFrame2NDArray(CEmergentFrame* frame, NDArray* pA
     }
 }
 
+
+// -----------------------------------------------------------------------
+// ADEmergentVision Camera Functions (Exposure, Format, Gain etc.)
+// -----------------------------------------------------------------------
 
 
 // -----------------------------------------------------------------------

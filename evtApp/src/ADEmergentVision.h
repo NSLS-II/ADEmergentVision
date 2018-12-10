@@ -47,6 +47,7 @@ using namespace Emergent;
 // enum type definitions
 
 
+
 class ADEmergentVision : ADDriver {
 
     public:
@@ -114,6 +115,8 @@ class ADEmergentVision : ADDriver {
     // -----------------------------
     // EVT Image acquisition functions
     // -----------------------------
+
+    asynStatus setCameraValues();
 
     asynStatus getFrameFormatND(CEmergentFrame* frame, NDDataType_t* dataType, NDColorMode_t* colorMode);
 
