@@ -71,7 +71,7 @@ extern "C" int ADEmergentVisionConfig(const char* portName, const char* serialNu
  * Callback function called when IOC is terminated.
  * Deletes created object
  *
- * @params[in]: pPvt -> pointer to the ADEmergentVision object created in ADUVCConfig
+ * @params[in]: pPvt -> pointer to the ADEmergentVision object created in ADEmergentVisionConfig
  * @return:     void
  */
 static void exitCallbackC(void* pPvt){
@@ -518,7 +518,7 @@ ADEmergentVision::~ADEmergentVision(){
 // -----------------------------------------------------------------------
 
 
-/* UVCConfig -> These are the args passed to the constructor in the epics config function */
+/* EVTConfig -> These are the args passed to the constructor in the epics config function */
 static const iocshArg EVTConfigArg0 = { "Port name",        iocshArgString };
 static const iocshArg EVTConfigArg1 = { "Serial number",    iocshArgString };
 static const iocshArg EVTConfigArg2 = { "maxBuffers",       iocshArgInt };

@@ -9,8 +9,7 @@ endif
 
 USR_CPPFLAGS += -std=c++11
 
-#UVC_HOME = /epics/support/areaDetector-3-2/ADUVC
-USR_INCLUDES += -I$(EMERGENT_HOME)/eSDK/include/
+#USR_INCLUDES += -I$(EMERGENT_HOME)/eSDK/include/
 
 LIBRARY_IOC = adEVT
 LIB_SRCS += ADEmergentVision.cpp
@@ -20,7 +19,7 @@ LIB_LIBS += EmergentGigEVision
 
 #SYS_PROD_LIBS += boost_system
 
-DBD += adEVTSupport.dbd
+DBD += evtSupport.dbd
 
 include $(ADCORE)/ADApp/commonLibraryMakefile
 

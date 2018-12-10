@@ -37,7 +37,7 @@ asynSetTraceIOMask($(PORT), 0, 2)
 #asynSetTraceMask($(PORT),0,0xff)
 
 dbLoadRecords("$(ADCORE)/db/ADBase.template", "P=$(PREFIX),R=cam1:,PORT=$(PORT),ADDR=0,TIMEOUT=1")
-dbLoadRecords("$(ADUVC)/db/ADUVC.template","P=$(PREFIX),R=cam1:,PORT=$(PORT),ADDR=0,TIMEOUT=1")
+dbLoadRecords("$(ADEMERGENTVISION)/db/ADEmergentVision.template","P=$(PREFIX),R=cam1:,PORT=$(PORT),ADDR=0,TIMEOUT=1")
 #
 # Create a standard arrays plugin, set it to get data from Driver.
 #int NDStdArraysConfigure(const char *portName, int queueSize, int blockingCallbacks, const char *NDArrayPort, int NDArrayAddr, int maxBuffers, size_t maxMemory,
@@ -58,7 +58,7 @@ dbLoadRecords("$(ADCORE)/db/NDStdArrays.template", "P=$(PREFIX),R=image1:,PORT=I
 #NDFileIMMConfigure("IMM1", 15000, 0, "$(PORT)",  0, 0, 0)
 #dbLoadRecords("$(ADCORE)/db/NDFileIMM.template", "P=$(PREFIX),R=IMM1:,PORT=IMM1,ADDR=0,TIMEOUT=1,NDARRAY_PORT=$(PORT)")
 
-set_requestfile_path("$(ADUVC)/adUVCApp/Db")
+set_requestfile_path("$(ADEMERGENTVISION)/evtApp/Db")
 
 #asynSetTraceMask($(PORT),0,0x09)
 #asynSetTraceMask($(PORT),0,0x11)
