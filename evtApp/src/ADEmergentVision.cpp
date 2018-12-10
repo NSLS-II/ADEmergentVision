@@ -142,7 +142,7 @@ asynStatus ADEmergentVision::connectToDeviceEVT(const char* serialNumber){
         return asynError;
     }
     else{
-        int i;
+        unsigned int i;
         for(i = 0; i< count; i++){
             if(strcmp(deviceList[i].serialNumber, serialNumber) == 0){
                 pdeviceInfo = (struct GigEVisionDeviceInfo*) malloc(sizeof(struct GigEVisionDeviceInfo));
@@ -196,6 +196,7 @@ asynStatus ADEmergentVision::disconnectFromDeviceEVT(){
 asynStatus ADEmergentVision::collectCameraInformation(){
     const char* functionName = "collectCameraInformation";
     asynStatus status = asynSuccess;
+    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Collecting camera information\n", driverName, functionName);
     setStringParam(ADManufacturer, this->pdeviceInfo->manufacturerName);
     setStringParam(ADSerialNumber, this->pdeviceInfo->serialNumber);
     setStringParam(ADFirmwareVersion,this->pdeviceInfo->deviceVersion);
@@ -208,6 +209,19 @@ asynStatus ADEmergentVision::collectCameraInformation(){
 // ADEmergentVision Acquisition Functions
 // -----------------------------------------------------------------------
 
+
+/**
+ * Function that will set all camera parameters from their PV Values
+ * 
+ * TODO
+ * 
+ * return: void
+ */
+asynStatus ADEmergentVision::setCameraValues(){
+    const char* functionName = "setCameraValues";
+    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Unimplemented\n", driverName, functionName);
+    return asynSuccess;
+}
 
 /**
  * Function responsible for starting camera image acqusition. First, check if there is a
@@ -300,6 +314,7 @@ asynStatus ADEmergentVision::getFrameFormatND(CEmergentFrame* frame, NDDataType_
         case PIX_BIT_DEPTH_SHIFT:
         default:
             //not a supported depth
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Unsupported Frame format\n", driverName, functionName);
             *dataType = NDUInt8;
             break;
     }
@@ -330,7 +345,7 @@ asynStatus ADEmergentVision::evtFrame2NDArray(CEmergentFrame* frame, NDArray* pA
     int xsize;
     int ysize;
     status = getFrameFormatND(frame, &dataType, &colorMode);
-    if(status = asynError){
+    if(status == asynError){
         asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error computing dType and color mode\n", driverName, functionName);
         return asynError;
     }
@@ -378,7 +393,7 @@ asynStatus ADEmergentVision::evtFrame2NDArray(CEmergentFrame* frame, NDArray* pA
 // -----------------------------------------------------------------------
 
 
-/*
+/**
  * Function overwriting ADDriver base function.
  * Takes in a function (PV) changes, and a value it is changing to, and processes the input
  *
@@ -423,7 +438,7 @@ asynStatus ADEmergentVision::writeInt32(asynUser* pasynUser, epicsInt32 value){
 }
 
 
-/*
+/**
  * Function overwriting ADDriver base function.
  * Takes in a function (PV) changes, and a value it is changing to, and processes the input
  * This is the same functionality as writeInt32, but for processing doubles.
@@ -444,9 +459,36 @@ asynStatus ADEmergentVision::writeFloat64(asynUser* pasynUser, epicsFloat64 valu
         status = ADDriver::writeFloat64(pasynUser, value);
     }
     callParamCallbacks();
-    if(status == asynError) asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s ERROR status=%d, function=%d, value=%d\n", driverName, functionName, status, function, value);
-    else asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s function=%d value=%d\n", driverName, functionName, function, value);
+    if(status == asynError) asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s ERROR status=%d, function=%d, value=%lf\n", driverName, functionName, status, function, value);
+    else asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s function=%d value=%lf\n", driverName, functionName, function, value);
     return status;
+}
+
+
+/**
+ * Function used for reporting ADEmergentVision device and library information to a external
+ * log file. The function first prints all GigEVision specific information to the file,
+ * then continues on to the base ADDriver 'report' function
+ * 
+ * @params[in]: fp      -> pointer to log file
+ * @params[in]: details -> number of details to write to the file
+ * @return:     void
+ */
+void ADEmergentVision::report(FILE* fp, int details){
+    const char* functionName = "report";
+    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s reporting to external log file\n",driverName, functionName);
+    fprintf(fp, "--------------------------------------\n");
+    fprintf(fp, "Connected to EVT device\n");
+    fprintf(fp, "--------------------------------------\n");
+    fprintf(fp, "Specification: %d.%d\n", this->pdeviceInfo->specVersionMajor, this->pdeviceInfo->specVersionMinor);
+    fprintf(fp, "Device mode: %d, Device Version: %s\n", this->pdeviceInfo->deviceMode, this->pdeviceInfo->deviceVersion);
+    fprintf(fp, "ManufacturerName: %s, Model name %s\n", this->pdeviceInfo->manufacturerName, this->pdeviceInfo->modelName);
+    fprintf(fp, "IP: %s, Mask %s\n",this->pdeviceInfo->currentIp, this->pdeviceInfo->currentSubnetMask);
+    fprintf(fp, "MAC address: %s\n", this->pdeviceInfo->macAddress);
+    fprintf(fp, "Serial: %s, User Name: %s\n", this->pdeviceInfo->serialNumber, this->pdeviceInfo->userDefinedName);
+    fprintf(fp, "Manufacturer Specific Information: %s\n", this->pdeviceInfo->manufacturerSpecifiedInfo);
+
+    ADDriver::report(fp, details);
 }
 
 
@@ -473,7 +515,7 @@ ADEmergentVision::ADEmergentVision(const char* portName, const char* serialNumbe
 
     const char* functionName = "ADEmergentVision";
     char evtVersionString[25];
-    epicsSnprintf(evtVersionString, sizeof(evtVersionString), "%s", EVT_SDKVersion);
+    epicsSnprintf(evtVersionString, sizeof(evtVersionString), "%s", (char*) EVT_SDKVersion);
     setStringParam(ADSDKVersion, evtVersionString);
 
     char versionString[25];
