@@ -129,8 +129,8 @@ void ADEmergentVision::printConnectedDeviceInfo(){
 asynStatus ADEmergentVision::connectToDeviceEVT(const char* serialNumber){
     const char* functionName = "connectToDeviceEVT()";
     unsigned int count, numCameras;
-    struct GigEVisionDeviceInfo deviceList[numCameras];
     numCameras = MAX_CAMERAS;
+    struct GigEVisionDeviceInfo deviceList[numCameras];
     this->evt_status = EVT_ListDevices(pdeviceInfo, &numCameras, &count);
     if(this->evt_status != EVT_SUCCESS){
         reportEVTError(this->evt_status, functionName);
