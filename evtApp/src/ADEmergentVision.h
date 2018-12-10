@@ -90,6 +90,11 @@ class ADEmergentVision : ADDriver {
 
     int withShutter = 0;
 
+    // Image thread
+    int imageCollectionThreadActive = 0;
+    pthread_t imageCollectionThread;
+
+    int test_counter = 0;
 
     // ----------------------------
     // EVT Functions for logging/reporting
@@ -118,14 +123,18 @@ class ADEmergentVision : ADDriver {
     // -----------------------------
 
     asynStatus setCameraValues();
-
     asynStatus getFrameFormatND(CEmergentFrame* frame, NDDataType_t* dataType, NDColorMode_t* colorMode);
-
     asynStatus evtFrame2NDArray(CEmergentFrame* frame, NDArray* pArray);
+    
+    void evtCallback();
+    static void* evtCallbackWrapper(void* pPtr);
+
 
     asynStatus acquireStart();
-
     asynStatus acquireStop();
+
+    asynStatus startImageAcquisitionThread();
+    asynStatus stopImageAcquisitionThread();
     
 
 };
