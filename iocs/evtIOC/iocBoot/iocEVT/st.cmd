@@ -30,6 +30,7 @@ epicsEnvSet("EPICS_CA_MAX_ARRAY_BYTES", 20000000)
 
 # If searching for device by serial number, put 0 and 0 for vendor/productID
 # ADEmergentVisionConfig(const char* portName, int maxBuffers, size_t maxMemory, int priority, int stackSize)
+ADEmergentVisionConfig("$(PORT)", "370018", 0, 0, 0, 0)
 
 epicsThreadSleep(2)
 
