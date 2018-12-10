@@ -131,7 +131,7 @@ asynStatus ADEmergentVision::connectToDeviceEVT(const char* serialNumber){
     unsigned int count, numCameras;
     numCameras = MAX_CAMERAS;
     struct GigEVisionDeviceInfo deviceList[numCameras];
-    this->evt_status = EVT_ListDevices(pdeviceInfo, &numCameras, &count);
+    this->evt_status = EVT_ListDevices(deviceList, &numCameras, &count);
     if(this->evt_status != EVT_SUCCESS){
         reportEVTError(this->evt_status, functionName);
         return asynError;
