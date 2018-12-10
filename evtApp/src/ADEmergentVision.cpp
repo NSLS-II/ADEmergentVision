@@ -332,8 +332,8 @@ asynStatus ADEmergentVision::acquireStop(){
         status = asynError;
     }
     else{
-        this->evt_status = EVT_CameraCloseStream(pcamera);
         stopImageAcquisitionThread();
+        this->evt_status = EVT_CameraCloseStream(pcamera);
         if(this->evt_status != EVT_SUCCESS){
             reportEVTError(this->evt_status, functionName);
             status = asynError;
@@ -664,7 +664,7 @@ ADEmergentVision::ADEmergentVision(const char* portName, const char* serialNumbe
 
     const char* functionName = "ADEmergentVision";
     char evtVersionString[25];
-    epicsSnprintf(evtVersionString, sizeof(evtVersionString), "%s", (char*) EVT_SDKVersion);
+    epicsSnprintf(evtVersionString, sizeof(evtVersionString), "%s", EVT_SDKVersion());
     setStringParam(ADSDKVersion, evtVersionString);
 
     char versionString[25];
