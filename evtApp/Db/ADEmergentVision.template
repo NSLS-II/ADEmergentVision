@@ -4,3 +4,138 @@
 # Author: Jakub Wlodek
 # Created On: Dec-7-2018
 #
+
+##############################################
+# stores the Pixel Format for EVT camera
+################################################
+record(ao, "$(P)$(R)EVTPixelFormat"){
+    field(PINI, "YES")
+    field(DTYP, "asynInt32")
+    field(OUT, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_PIXEL_FORMAT")
+}
+
+record(ai, "$(P)$(R)EVTPixelFormat_RBV"){
+    field(DTYP, "asynInt32")
+    field(INP, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_PIXEL_FORMAT")
+    field(SCAN, "I/O Intr")
+}
+
+##############################################
+# stores the Framerate for EVT camera
+################################################
+record(ao, "$(P)$(R)EVTFramerate"){
+    field(PINI, "YES")
+    field(DTYP, "asynInt32")
+    field(OUT, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_FRAMERATE")
+}
+
+record(ai, "$(P)$(R)EVTFramerate_RBV"){
+    field(DTYP, "asynInt32")
+    field(INP, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_FRAMERATE")
+    field(SCAN, "I/O Intr")
+}
+
+##############################################
+# stores the Offset X for EVT camera
+################################################
+record(ao, "$(P)$(R)EVTOffsetX"){
+    field(PINI, "YES")
+    field(DTYP, "asynInt32")
+    field(OUT, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_OFFX")
+}
+
+record(ai, "$(P)$(R)EVTOffsetX_RBV"){
+    field(DTYP, "asynInt32")
+    field(INP, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_OFFX")
+    field(SCAN, "I/O Intr")
+}
+
+##############################################
+# stores the Offset Y for EVT camera
+################################################
+record(ao, "$(P)$(R)EVTOffsetY"){
+    field(PINI, "YES")
+    field(DTYP, "asynInt32")
+    field(OUT, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_OFFY")
+}
+
+record(ai, "$(P)$(R)EVTOffsetY_RBV"){
+    field(DTYP, "asynInt32")
+    field(INP, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_OFFY")
+    field(SCAN, "I/O Intr")
+}
+
+##############################################
+# stores the BufferMode for EVT camera
+################################################
+record(ao, "$(P)$(R)EVTBuffMode"){
+    field(PINI, "YES")
+    field(DTYP, "asynInt32")
+    field(OUT, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_BUFF_MODE")
+}
+
+record(ai, "$(P)$(R)EVTBuffMode_RBV"){
+    field(DTYP, "asynInt32")
+    field(INP, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_BUFF_MODE")
+    field(SCAN, "I/O Intr")
+}
+
+##############################################
+# stores the Buffer Number for EVT camera
+################################################
+record(ao, "$(P)$(R)EVTBuffNum"){
+    field(PINI, "YES")
+    field(DTYP, "asynInt32")
+    field(OUT, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_BUFF_NUM")
+}
+
+record(ai, "$(P)$(R)EVTBuffNum_RBV"){
+    field(DTYP, "asynInt32")
+    field(INP, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_BUFF_NUM")
+    field(SCAN, "I/O Intr")
+}
+
+##############################################
+# stores the PacketSize for EVT camera
+################################################
+record(ao, "$(P)$(R)EVTPacketSize"){
+    field(PINI, "YES")
+    field(DTYP, "asynInt32")
+    field(OUT, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_PACKET")
+}
+
+record(ai, "$(P)$(R)EVTPacketSize_RBV"){
+    field(DTYP, "asynInt32")
+    field(INP, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_PACKET")
+    field(SCAN, "I/O Intr")
+}
+
+##############################################
+# stores the LUT Enable for EVT camera
+################################################
+record(ao, "$(P)$(R)EVTLUTEnable"){
+    field(PINI, "YES")
+    field(DTYP, "asynInt32")
+    field(OUT, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_LUT")
+}
+
+record(ai, "$(P)$(R)EVTLUTEnable_RBV"){
+    field(DTYP, "asynInt32")
+    field(INP, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_LUT")
+    field(SCAN, "I/O Intr")
+}
+
+##############################################
+# stores the Auto Gain for EVT camera
+################################################
+record(ao, "$(P)$(R)EVTAutoGain"){
+    field(PINI, "YES")
+    field(DTYP, "asynInt32")
+    field(OUT, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_AUTOGAIN")
+}
+
+record(ai, "$(P)$(R)EVTAutoGain_RBV"){
+    field(DTYP, "asynInt32")
+    field(INP, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_AUTOGAIN")
+    field(SCAN, "I/O Intr")
+}

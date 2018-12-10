@@ -107,8 +107,8 @@ void ADEmergentVision::printConnectedDeviceInfo(){
     printf("ManufacturerName: %s, Model name %s\n", this->pdeviceInfo->manufacturerName, this->pdeviceInfo->modelName);
     printf("IP: %s, Mask %s\n",this->pdeviceInfo->currentIp, this->pdeviceInfo->currentSubnetMask);
     printf("MAC address: %s\n", this->pdeviceInfo->macAddress);
-    printf("Serial: %s, User Name: %s\n", this->pdeviceInfo->serialNumber, this->pdeviceInfo->userDefinedName);
-    printf("Manufacturer Specific Information: %s\n", this->pdeviceInfo->manufacturerSpecifiedInfo);
+    printf("Serial: %s\n", this->pdeviceInfo->serialNumber);
+    //printf("Manufacturer Specific Information: %s\n", this->pdeviceInfo->manufacturerSpecifiedInfo);
 }
 
 
