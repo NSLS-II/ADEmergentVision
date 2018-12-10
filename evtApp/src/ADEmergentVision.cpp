@@ -109,6 +109,7 @@ void ADEmergentVision::printConnectedDeviceInfo(){
     printf("MAC address: %s\n", this->pdeviceInfo->macAddress);
     printf("Serial: %s\n", this->pdeviceInfo->serialNumber);
     //printf("Manufacturer Specific Information: %s\n", this->pdeviceInfo->manufacturerSpecifiedInfo);
+    printf("--------------------------------------\n");
 }
 
 
@@ -155,8 +156,8 @@ asynStatus ADEmergentVision::connectToDeviceEVT(const char* serialNumber){
             return asynError;
         }
         else{
-            printConnectedDeviceInfo();
             this->evt_status = EVT_CameraOpen(this->pcamera, this->pdeviceInfo);
+            printConnectedDeviceInfo();
             if(this->evt_status != EVT_SUCCESS){
                 reportEVTError(this->evt_status, functionName);
                 return asynError;

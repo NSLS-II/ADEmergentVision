@@ -84,7 +84,8 @@ class ADEmergentVision : ADDriver {
     // ----------------------------
 
     EVT_ERROR evt_status;
-    CEmergentCamera* pcamera;
+    CEmergentCamera camera;
+    CEmergentCamera* pcamera = &camera;
     struct GigEVisionDeviceInfo* pdeviceInfo;
 
     int withShutter = 0;
