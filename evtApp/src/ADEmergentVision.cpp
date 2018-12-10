@@ -377,11 +377,24 @@ asynStatus ADEmergentVision::evtFrame2NDArray(CEmergentFrame* frame, NDArray* pA
 // ADEmergentVision ADDriver Overrides (WriteInt32/WriteFloat64/report)
 // -----------------------------------------------------------------------
 
+
+
 // -----------------------------------------------------------------------
 // ADEmergentVision Constructor/Destructor
 // -----------------------------------------------------------------------
 
 
+/*
+ * Constructor for ADEmergentVision driver. Most params are passed to the parent ADDriver constructor.
+ * Connects to the camera, then gets device information, and is ready to aquire images.
+ *
+ * @params[in]: portName        -> port for NDArray recieved from camera
+ * @params[in]: serialNumber    -> serial number of device to connect to
+ * @params[in]: maxBuffers      -> max buffer size for NDArrays
+ * @params[in]: maxMemory       -> maximum memory allocated for driver
+ * @params[in]: priority        -> what thread priority this driver will execute with
+ * @params[in]: stackSize       -> size of the driver on the stack
+ */
 ADEmergentVision::ADEmergentVision(const char* portName, const char* serialNumber, int maxBuffers, size_t maxMemory, int priority, int stackSize)
     : ADDriver(portName, 1, (int)NUM_EVT_PARAMS, maxBuffers, maxMemory, asynEnumMask, asynEnumMask, ASYN_CANBLOCK, 1, priority, stackSize){
     
@@ -432,5 +445,39 @@ ADEmergentVision::~ADEmergentVision(){
 // ADEmergentVision IOC Shell Registration Functions
 // -----------------------------------------------------------------------
 
+/* UVCConfig -> These are the args passed to the constructor in the epics config function */
+static const iocshArg EVTConfigArg0 = { "Port name",        iocshArgString };
+static const iocshArg EVTConfigArg1 = { "Serial number",    iocshArgString };
+static const iocshArg EVTConfigArg2 = { "maxBuffers",       iocshArgInt };
+static const iocshArg EVTConfigArg3 = { "maxMemory",        iocshArgInt };
+static const iocshArg EVTConfigArg4 = { "priority",         iocshArgInt };
+static const iocshArg EVTConfigArg5 = { "stackSize",        iocshArgInt };
 
 
+/* Array of config args */
+static const iocshArg * const EVTConfigArgs[] =
+        { &EVTConfigArg0, &EVTConfigArg1, &EVTConfigArg2,
+        &EVTConfigArg3, &EVTConfigArg4, &EVTConfigArg5};
+
+
+/* what function to call at config */
+static void configEVTCallFunc(const iocshArgBuf *args) {
+    ADEmergentVisionConfig(args[0].sval, args[1].sval, args[2].ival, args[3].ival,
+            args[4].ival, args[5].ival);
+}
+
+
+/* information about the configuration function */
+static const iocshFuncDef configEVT = { "ADEmergentVisionConfig", 5, EVTConfigArgs };
+
+
+/* IOC register function */
+static void EVTRegister(void) {
+    iocshRegister(&configEVT, configEVTCallFunc);
+}
+
+
+/* external function for IOC register */
+extern "C" {
+    epicsExportRegistrar(EVTRegister);
+}
