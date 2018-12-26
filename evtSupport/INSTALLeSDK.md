@@ -23,20 +23,19 @@ EVTINSTALL
 |
 |--uninstall_eSdk.sh
 ```
-Simply run the install_eSdk.sh script, and the eSDK will be installed on your computer in the /opt/EVT directory. You must now move the libs and includes required by the eSDK into the appropriate locations for the EPICS build path.
+Simply run the install_eSdk.sh script, and the eSDK will be installed on your computer.
 
-To do this, run the following commands:
+In my case it was placed in the /opt/EVT directory, on my Ubuntu 18.04 machine.
+
+You must now move the libs and includes required by the eSDK into the appropriate locations for the EPICS build path.
+
+To do this, open the prep_eSDK script for your OS, and edit the PATH_ESDK macro to match the path to the eSDK
+on your machine. In my case this was /opt/EVT/eSDK. Then simply run
 ```
-mkdir include
-mkdir os
-cd os
-mkdir linux-x86_64
-cd ..
+prep_eSDK_Linux.sh
 ```
-If you are on a different architecture than 64 bit linux, change these commands to fit your ARCH.  
-Next, copy the contents of the $(EMERGENT_DIR)/eSDK/include directory to the include folder you
-just created. Then, copy the contents of $(EMERGENT_DIR)/eSDK/lib to the os/linux-x86_64 directory,
-or whichever one you created for your ARCH.  
+if you are on linux. A script for windows machines will be added by R1-0.
+ 
 Finally, you may have to edit the Makefile in evtSupport, if the versions of the libraries you built are different
 than those used to write the driver.  
 Simply edit:

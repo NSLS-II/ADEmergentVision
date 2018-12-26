@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>ADUVC Documentation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" media="screen" href="adEVTStyles.css" />
+</head>
+<body>
+    <h1>ADEmergentVision</h1>
+    <h4>An EPICS driver for Emergent Vision Technologies (EVT) detectors</h4>
+    <hr/>
+    <h4>Author: Jakub Wlodek</h4>
+    <h4>Corresponding author: Kazimierz Gofron</h4>
+    <hr/>
+    <h4>Introduction:</h4>
+    <p class="text-section-local">
+        EVT provides high performance detectors notable for there high data transfer ability, with future plans for 25 gig ethernet on certain
+        detector variants. EVT detectors are GenICam and GigEVision compliant, so should also function with a generic driver such as Aravis,
+        but will most likely incur a performance penalty. The eSDK which is required to use this driver can be downloaded from the 
+        <a href="https://emergentvisiontec.com/">EVT website</a>.
+    </p>
+    <hr />
+    <h4>Installation:</h4>
+    <p class="text-section-local">
+        Detailed installation instructions for the ADUVC driver can be seen in the <a href="https://github.com/jwlodek/ADEmergentVision/blob/master/README.md">README</a>
+        file. To install ADEmergentVision, you must first install the eSDK and its dependancies. First, download the eSDK from the <a href="https://emergentvisiontec.com/">EVT website</a>.
+        Then, run the included install script, and find where the eSDK was installed. On linux, it is placed in the /opt/EVT/eSDK directory. Next, enter the evtSupport directory, edit
+        the appropriate pre_eSDK script for your OS. as explained in the installation guide found there, and run the script. Finally, make sure that the lib versions copied to
+        os/YOUR_ARCH match the ones loaded for compilation in the Makefile in evtSupport. Finally, enter the top level of ADEmergentVision and run make -sj.
+    </p>
+    <hr />
+    <h4>Driver Contents:</h4>
+    <ul>
+        <li>prep_eSDK_Linux.sh-> bash script that copies eSDK includes and libs to correct locations for compilation on linux systems
+        <li>ADEmergentVision driver        ->  The source code for the area detector driver itself in the evtApp/src directory.</li>
+        <li>iocEVT            ->  Example ioc for use with the ADEmergentVision driver. Shows how to connect to a detector in the EPICS IOC shell</li>
+    </ul>
+    <hr />
+    <h4>Usage:</h4>
+    <p class="text-section-local">
+        Once the driver is installed, you may start the ioc by entering the IOC folder and running './startEPICS.sh'.
+        You may then integrate ADEmergentVision into your area detector screen setup.
+        Below is an image of the ADEmergentVision base control screen. It extends the standard ADBase screen with EVT controls for various camera functionality.
+    </p>
+    <!--<img src="assets/ADUVCBase.png" alt="ADUVC base screen" />
+    <p class="text-section-local">The ADUVC Base screen. Based on the ADBase screen with added controls specific to ADUVC.</p>-->
+    <hr />
+    <h4>Release Notes:</h4>
+    <p class="text-section-local">
+        Release notes for the ADUVC driver are available on <a href="https://github.com/jwlodek/ADEmergentVision/blob/master/RELEASE.md">Github</a>.
+    </p>
+    <hr />
+    <h4>Issues and pull requests:</h4>
+    <p class="text-section-local">
+        To submit an issue or a pull request for ADUVC, please do so at the source fork on <a href = "https://github.com/jwlodek/ADEmergentVision">Github</a>.
+    </p>
+    <h4>Important links:</h4>
+    <ul>
+        <li><a href="https://emergentvisiontec.com/">Emergent Vision Technologies website</a></li>
+        <li><a href="https://github.com/jwlodek/ADEmergentVision">ADEmergentVision on Github</a></li>
+        <li><a href="https://github.com/areaDetector">areaDetector on Github</a></li>
+    </ul>
+    
+</body>
+</html>
