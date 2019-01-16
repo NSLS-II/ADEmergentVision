@@ -234,7 +234,12 @@ asynStatus ADEmergentVision::setCameraValues(){
     return asynSuccess;
 }
 
-
+/**
+ * Function that initializes the image acquisition thread for the EVT camera
+ * calls pthread_create to create the thread and sets the threadActive flag to true 
+ *
+ * return: status
+ */
 asynStatus ADEmergentVision::startImageAcquisitionThread(){
     const char* functionName = "startImageAcquisitionThread";
     asynStatus status;
@@ -245,7 +250,8 @@ asynStatus ADEmergentVision::startImageAcquisitionThread(){
         }
         else{
             this->imageCollectionThreadActive = 1;
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Image Thread Created\n", driverName, functionName);
+            asynPrint(this->pasynUserSelf, ASYN_TRACEIO_DRIVER, "%s::%s Image Thread Created\n", driverName, functionName);
+            pthread_detach(this->imageCollectionThread);
             status = asynSuccess;
         }
     }
@@ -257,6 +263,12 @@ asynStatus ADEmergentVision::startImageAcquisitionThread(){
 }
 
 
+/**
+ * Function that stops the image acquisition thread
+ * Sets flag for active to false and then calls pthread join.
+ * 
+ * 
+ */
 asynStatus ADEmergentVision::stopImageAcquisitionThread(){
     const char* functionName = "stopImageAcquisitionThread";
     asynStatus status;
@@ -266,6 +278,8 @@ asynStatus ADEmergentVision::stopImageAcquisitionThread(){
     }
     else{
         imageCollectionThreadActive = 0;
+        asynPrint(this->pasynUserSelf, ASYN_TRACEIO_DRIVER, "%s::%s Stopping image acquisition thread\n", driverName, functionName);
+        /*
         if(pthread_join(this->imageCollectionThread, NULL)){
             asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error joining image collection thread\n", driverName, functionName);
             status = asynError;
@@ -274,6 +288,7 @@ asynStatus ADEmergentVision::stopImageAcquisitionThread(){
             asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Joined Image Acquisition thread\n", driverName, functionName);
             status = asynSuccess;
         }
+        */
     }
     return status;
 }
