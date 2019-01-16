@@ -251,8 +251,12 @@ asynStatus ADEmergentVision::startImageAcquisitionThread(){
         else{
             this->imageCollectionThreadActive = 1;
             asynPrint(this->pasynUserSelf, ASYN_TRACEIO_DRIVER, "%s::%s Image Thread Created\n", driverName, functionName);
-            pthread_detach(this->imageCollectionThread);
-            status = asynSuccess;
+            int detached = pthread_detach(this->imageCollectionThread);
+            if(detached) status = asynSuccess;
+            else{
+                asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Unable to detach image acquisition thread\n", driverName, functionName);
+                status = asynError;
+            }
         }
     }
     else{
@@ -486,21 +490,21 @@ void ADEmergentVision::evtCallback(){
         getIntegerParam(ADNumImagesCounter, &imageCounter);
         getIntegerParam(ADSizeX, &xsize);
         getIntegerParam(ADSizeY, &ysize);
-        printf("running acquire start command\n");
+        //printf("running acquire start command\n");
         EVT_CameraExecuteCommand(this->pcamera, "AcquisitionStart");
 
         frames[0].size_x = xsize;
         frames[0].size_y = ysize;
         frames[0].pixel_type = GVSP_PIX_MONO8;
 
-        printf("allocating frame buffer command\n");
+        //printf("allocating frame buffer command\n");
         EVT_ERROR err = EVT_AllocateFrameBuffer(this->pcamera, &frames[0], EVT_FRAME_BUFFER_ZERO_COPY);
         if(err != EVT_SUCCESS) reportEVTError(err, functionName);
         else{
             EVT_CameraQueueFrame(this->pcamera, &frames[0]);
         }
 
-        printf("triggering w/ software\n");
+        //printf("triggering w/ software\n");
         EVT_CameraExecuteCommand(this->pcamera, "TriggerSoftware");
 
         EVT_CameraGetFrame(this->pcamera, &frames[0], EVT_INFINITE);
@@ -513,16 +517,16 @@ void ADEmergentVision::evtCallback(){
         EVT_ReleaseFrameBuffer(this->pcamera, &frames[0]);
         imageCounter++;
         setIntegerParam(ADNumImagesCounter, imageCounter);
-        printf("Num Images: %d\n", imageCounter);
-        printf("gets past conversion process\n");
+        //printf("Num Images: %d\n", imageCounter);
+        //printf("gets past conversion process\n");
         if(status == asynError){
             asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error converting to NDArray\n", driverName, functionName);
-            imageCollectionThreadActive = 0;
+            acquireStop();
             break;
         }
         if(imageMode == ADImageSingle){
-            imageCollectionThreadActive = 0;
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Done\n", driverName, functionName);
+            acquireStop();
+            asynPrint(this->pasynUserSelf, ASYN_TRACEIO_DRIVER, "%s::%s Done acquiring\n", driverName, functionName);
         }
         else if(imageMode == ADImageMultiple){
             printf("thinks it is multiple\n");
@@ -530,20 +534,12 @@ void ADEmergentVision::evtCallback(){
             getIntegerParam(ADNumImages, &numImages);
             
             if(imageCounter == numImages){
-                imageCollectionThreadActive = 0;
-                asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Done\n", driverName, functionName);
+                acquireStop();
+                asynPrint(this->pasynUserSelf, ASYN_TRACEIO_DRIVER, "%s::%s Done\n", driverName, functionName);
             }
         }
-        printf("done with first loop iteration\n");
+        //printf("done with first loop iteration\n");
     }
-    /*
-    while(this->imageCollectionThreadActive == 1){
-        //testing the threading before camera stuff gets tested
-        test_counter++;
-        epicsThreadSleep(5);
-        printf("%d\n", test_counter);
-    }
-    */
 }
 
 
