@@ -368,6 +368,68 @@ asynStatus ADEmergentVision::acquireStop(){
 
 
 /**
+ * Function that takes selected NDDataType and NDColorMode, and converts into an EVT pixel type
+ * This is then used by the camera when starting image acquisiton
+ * 
+ * @params[out]: evtPixelType   -> pixel type of EVT image desired
+ * @params[in]:  dataType       -> NDDataType selected in CSS
+ * @params[in]:  colorMode      -> NDColorMode selected in CSS
+ * @return: status              -> error if combination of dtype and color mode invalid
+ */
+asynStatus ADEmergentVision::getFrameFormatEVT(unsigned int* evtPixelType, NDDataType_t dataType, NDColorMode_t colorMode){
+    const char* functionName = "getFrameFormatEVT";
+    asynStatus status = asynSuccess;
+
+    switch(colorMode){
+        case NDColorModeMono:
+            switch(dataType){
+                case NDUInt8:
+                    *evtPixelType = GVSP_PIX_MONO8;
+                    break;
+                case NDUInt16:
+                    *evtPixelType = UNPACK_PIX_MONO16;
+                    break;
+                default:
+                    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Unsupported data type for this color mode\n", driverName, functionName);
+                    return asynError;
+            }
+            break;
+        case NDColorModeRGB1:
+            switch(dataType){
+                case NDUInt8:
+                    *evtPixelType = GVSP_PIX_RGB8;
+                    break;
+                case NDUInt16:
+                    *evtPixelType = UNPACK_PIX_RGB16;
+                    break;
+                default:
+                    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Unsupported data type for this color mode\n", driverName, functionName);
+                    return asynError;
+            }
+            break;
+        case NDColorModeBayer:
+            switch(dataType){
+                case NDUInt8:
+                    *evtPixelType = CONVERT_PIX_BAYRG8;
+                    break;
+                case NDUInt16:
+                    *evtPixelType = CONVERT_PIX_BAYRG16;
+                    break;
+                default:
+                    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Unsupported data type for this color mode\n", driverName, functionName);
+                    return asynError;
+            }
+            break;
+        default:
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error Not supported color format\n", driverName, functionName);
+            status = asynError;
+            break;
+    }
+    return status;
+}
+
+
+/**
  * Function that gets frame format information from a captured frame from the camera
  * 
  * TODO: This function needs to be reworked
@@ -386,11 +448,26 @@ asynStatus ADEmergentVision::getFrameFormatND(CEmergentFrame* frame, NDDataType_
             *dataType = NDUInt8;
             *colorMode = NDColorModeMono;
             break;
-        case PIX_BIT_DEPTH_16:
-            *dataType = NDUInt16;
+        case GVSP_PIX_RGB8:
+            *dataType = NDUInt8;
+            *colorMode = NDColorModeRGB1;
             break;
-        case PIX_BIT_DEPTH_MASK:
-        case PIX_BIT_DEPTH_SHIFT:
+        case UNPACK_PIX_MONO16:
+            *dataType = NDUInt16;
+            *colorMode = NDColorModeMono;
+            break;
+        case UNPACK_PIX_RGB16:
+            *dataType = NDUInt16;
+            *colorMode = NDColorModeRGB1;
+            break;
+        case CONVERT_PIX_BAYRG8:
+            *dataType = NDUInt8;
+            *colorMode = NDColorModeBayer;
+            break;
+        case CONVERT_PIX_BAYRG16:
+            *dataType = NDUInt16;
+            *colorMode = NDColorModeBayer;
+            break;
         default:
             //not a supported depth
             asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Unsupported Frame format\n", driverName, functionName);

@@ -124,6 +124,7 @@ class ADEmergentVision : ADDriver {
     // -----------------------------
 
     asynStatus setCameraValues();
+    asynStatus getFrameFormatEVT(unsigned int* evtPixelType, NDDataType_t dataType, NDColorMode_t colorMode);
     asynStatus getFrameFormatND(CEmergentFrame* frame, NDDataType_t* dataType, NDColorMode_t* colorMode);
     asynStatus evtFrame2NDArray(CEmergentFrame* frame, NDArray* pArray);
     
