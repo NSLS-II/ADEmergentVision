@@ -114,20 +114,23 @@ class ADEmergentVision : ADDriver {
     // EVT Camera Functions
     // -----------------------------
 
-    asynStatus getEVTFramerate(int* framerate);
-    asynStatus setEVTFramerate(int framerate);
+    asynStatus getEVTFramerate(unsigned int* framerate);
+    asynStatus setEVTFramerate(unsigned int framerate);
         
-    asynStatus getEVTOffsetX(int offsetX);
-    asynStatus setEVTOffsetX(int offsetX);
+    asynStatus getEVTOffsetX(unsigned int* offsetX);
+    asynStatus setEVTOffsetX(unsigned int offsetX);
     
-    asynStatus getEVTOffsetY(int offsetY);
-    asynStatus setEVTOffsetY(int offsetY);
+    asynStatus getEVTOffsetY(unsigned int* offsetY);
+    asynStatus setEVTOffsetY(unsigned int offsetY);
 
     asynStatus getEVTPacketSize(unsigned int* packetSize);
     asynStatus setEVTPacketSize(unsigned int packetSize);
 
-    asynStatus getEVTGain(int* gainValue);
-    asynStatus setEVTGain(int gainValue);
+    asynStatus getEVTGain(unsigned int* gainValue);
+    asynStatus setEVTGain(unsigned int gainValue);
+
+    asynStatus getEVTOffset(unsigned int* gainValue);
+    asynStatus setEVTOffset(unsigned int gainValue);
     
     asynStatus getEVTLUTStatus(bool* lutValue);
     asynStatus setEVTLUTStatus(bool lutEnable);
