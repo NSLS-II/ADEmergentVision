@@ -45,10 +45,6 @@ using namespace Emergent;
 #define ADEVT_AutoGainString                "EVT_AUTOGAIN"             //asynParamInt32
 
 
-// enum type definitions
-
-
-
 class ADEmergentVision : ADDriver {
 
     public:
@@ -118,12 +114,36 @@ class ADEmergentVision : ADDriver {
     // EVT Camera Functions
     // -----------------------------
 
+    asynStatus getEVTFramerate(unsigned int* framerate);
+    asynStatus setEVTFramerate(unsigned int framerate);
+        
+    asynStatus getEVTOffsetX(unsigned int* offsetX);
+    asynStatus setEVTOffsetX(unsigned int offsetX);
+    
+    asynStatus getEVTOffsetY(unsigned int* offsetY);
+    asynStatus setEVTOffsetY(unsigned int offsetY);
+
+    asynStatus getEVTPacketSize(unsigned int* packetSize);
+    asynStatus setEVTPacketSize(unsigned int packetSize);
+
+    asynStatus getEVTGain(unsigned int* gainValue);
+    asynStatus setEVTGain(unsigned int gainValue);
+
+    asynStatus getEVTOffset(unsigned int* gainValue);
+    asynStatus setEVTOffset(unsigned int gainValue);
+    
+    asynStatus getEVTLUTStatus(bool* lutValue);
+    asynStatus setEVTLUTStatus(bool lutEnable);
+    
+    asynStatus getEVTAutoGain(bool* autoGainValue);
+    asynStatus setEVTAutoGain(bool autoGainEnable);
 
     // -----------------------------
     // EVT Image acquisition functions
     // -----------------------------
 
     asynStatus setCameraValues();
+    asynStatus getFrameFormatEVT(unsigned int* evtPixelType, NDDataType_t dataType, NDColorMode_t colorMode);
     asynStatus getFrameFormatND(CEmergentFrame* frame, NDDataType_t* dataType, NDColorMode_t* colorMode);
     asynStatus evtFrame2NDArray(CEmergentFrame* frame, NDArray* pArray);
     

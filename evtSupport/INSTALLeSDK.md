@@ -39,7 +39,7 @@ if you are on linux. A script for windows machines will be added by R1-0.
 Finally, you may have to edit the Makefile in evtSupport, if the versions of the libraries you built are different
 than those used to write the driver.  
 Simply edit:
-``
+```
 INC += INCLUDE_FILENAME
 LIB_INSTALLS_ARCH += LIBRARY_NAME
 ```
