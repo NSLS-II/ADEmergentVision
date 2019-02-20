@@ -45,10 +45,6 @@ using namespace Emergent;
 #define ADEVT_AutoGainString                "EVT_AUTOGAIN"             //asynParamInt32
 
 
-// enum type definitions
-
-
-
 class ADEmergentVision : ADDriver {
 
     public:
@@ -118,6 +114,26 @@ class ADEmergentVision : ADDriver {
     // EVT Camera Functions
     // -----------------------------
 
+    asynStatus getEVTFramerate(int* framerate);
+    asynStatus setEVTFramerate(int framerate);
+        
+    asynStatus getEVTOffsetX(int offsetX);
+    asynStatus setEVTOffsetX(int offsetX);
+    
+    asynStatus getEVTOffsetY(int offsetY);
+    asynStatus setEVTOffsetY(int offsetY);
+
+    asynStatus getEVTPacketSize(unsigned int* packetSize);
+    asynStatus setEVTPacketSize(unsigned int packetSize);
+
+    asynStatus getEVTGain(int* gainValue);
+    asynStatus setEVTGain(int gainValue);
+    
+    asynStatus getEVTLUTStatus(bool* lutValue);
+    asynStatus setEVTLUTStatus(bool lutEnable);
+    
+    asynStatus getEVTAutoGain(bool* autoGainValue);
+    asynStatus setEVTAutoGain(bool autoGainEnable);
 
     // -----------------------------
     // EVT Image acquisition functions
