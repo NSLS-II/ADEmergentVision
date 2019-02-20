@@ -563,56 +563,67 @@ void ADEmergentVision::evtCallback(){
         int imageMode;
         int imageCounter;
         int xsize, ysize;
+        unsigned int evtPixelType;
+        int dataType;
+        int colorMode;
         getIntegerParam(ADImageMode, &imageMode);
         getIntegerParam(ADNumImagesCounter, &imageCounter);
         getIntegerParam(ADSizeX, &xsize);
         getIntegerParam(ADSizeY, &ysize);
-        //printf("running acquire start command\n");
-        EVT_CameraExecuteCommand(this->pcamera, "AcquisitionStart");
-
-        frames[0].size_x = xsize;
-        frames[0].size_y = ysize;
-        frames[0].pixel_type = GVSP_PIX_MONO8;
-
-        //printf("allocating frame buffer command\n");
-        EVT_ERROR err = EVT_AllocateFrameBuffer(this->pcamera, &frames[0], EVT_FRAME_BUFFER_ZERO_COPY);
-        if(err != EVT_SUCCESS) reportEVTError(err, functionName);
+        getIntegerParam(NDDataType, &dataType);
+        getIntegerParam(NDColorMode, &colorMode);
+        asynStatus convert = getFrameFormatEVT(&evtPixelType, (NDDataType_t) dataType, (NDColorMode_t) colorMode);
+        if(convert == asynError){
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error finding evt frame format\n", driverName, functionName);
+        }
         else{
-            EVT_CameraQueueFrame(this->pcamera, &frames[0]);
-        }
+            //printf("running acquire start command\n");
+            EVT_CameraExecuteCommand(this->pcamera, "AcquisitionStart");
 
-        //printf("triggering w/ software\n");
-        EVT_CameraExecuteCommand(this->pcamera, "TriggerSoftware");
+            frames[0].size_x = xsize;
+            frames[0].size_y = ysize;
+            frames[0].pixel_type = (PIXEL_FORMAT) evtPixelType;
 
-        EVT_CameraGetFrame(this->pcamera, &frames[0], EVT_INFINITE);
+            //printf("allocating frame buffer command\n");
+            EVT_ERROR err = EVT_AllocateFrameBuffer(this->pcamera, &frames[0], EVT_FRAME_BUFFER_ZERO_COPY);
+            if(err != EVT_SUCCESS) reportEVTError(err, functionName);
+            else{
+                EVT_CameraQueueFrame(this->pcamera, &frames[0]);
+            }
 
-        EVT_CameraExecuteCommand(&camera, "AcquisitionStop");
+            //printf("triggering w/ software\n");
+            EVT_CameraExecuteCommand(this->pcamera, "TriggerSoftware");
 
-        //EVT_ERROR err2 = EVT_FrameSave(&frames[0], "random_test.tif", EVT_FILETYPE_TIF, EVT_ALIGN_NONE);
-        
-        status = evtFrame2NDArray(frames, pArray);
-        EVT_ReleaseFrameBuffer(this->pcamera, &frames[0]);
-        imageCounter++;
-        setIntegerParam(ADNumImagesCounter, imageCounter);
-        //printf("Num Images: %d\n", imageCounter);
-        //printf("gets past conversion process\n");
-        if(status == asynError){
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error converting to NDArray\n", driverName, functionName);
-            acquireStop();
-            break;
-        }
-        if(imageMode == ADImageSingle){
-            acquireStop();
-            asynPrint(this->pasynUserSelf, ASYN_TRACEIO_DRIVER, "%s::%s Done acquiring\n", driverName, functionName);
-        }
-        else if(imageMode == ADImageMultiple){
-            printf("thinks it is multiple\n");
-            int numImages;
-            getIntegerParam(ADNumImages, &numImages);
-            
-            if(imageCounter == numImages){
+            EVT_CameraGetFrame(this->pcamera, &frames[0], EVT_INFINITE);
+
+            EVT_CameraExecuteCommand(&camera, "AcquisitionStop");
+
+            //EVT_ERROR err2 = EVT_FrameSave(&frames[0], "random_test.tif", EVT_FILETYPE_TIF, EVT_ALIGN_NONE);
+
+            status = evtFrame2NDArray(frames, pArray);
+            EVT_ReleaseFrameBuffer(this->pcamera, &frames[0]);
+            imageCounter++;
+            setIntegerParam(ADNumImagesCounter, imageCounter);
+            //printf("Num Images: %d\n", imageCounter);
+            //printf("gets past conversion process\n");
+            if(status == asynError){
+                asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error converting to NDArray\n", driverName, functionName);
                 acquireStop();
-                asynPrint(this->pasynUserSelf, ASYN_TRACEIO_DRIVER, "%s::%s Done\n", driverName, functionName);
+                break;
+            }
+            if(imageMode == ADImageSingle){
+                acquireStop();
+                asynPrint(this->pasynUserSelf, ASYN_TRACEIO_DRIVER, "%s::%s Done acquiring\n", driverName, functionName);
+            }
+            else if(imageMode == ADImageMultiple){
+                printf("thinks it is multiple\n");
+                int numImages;
+                getIntegerParam(ADNumImages, &numImages);
+
+                if(imageCounter == numImages){
+                    acquireStop();
+                    asynPrint(this->pasynUserSelf, ASYN_TRACEIO_DRIVER, "%s::%s Done\n", driverName, functionName);
+                }
             }
         }
         //printf("done with first loop iteration\n");
