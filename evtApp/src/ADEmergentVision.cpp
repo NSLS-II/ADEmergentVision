@@ -636,6 +636,154 @@ void ADEmergentVision::evtCallback(){
 // -----------------------------------------------------------------------
 
 
+/* Getter and setter functions for setting the Framerate of the EVT Camera */
+
+
+asynStatus ADEmergentVision::getEVTFramerate(unsigned int* framerate){
+    const char* functionName = "getEVTFramerate";
+    asynStatus status = asynSuccess;
+    this->evt_status = EVT_CameraGetUInt32Param(this->pcamera, "FrameRate", framerate);
+    if(evt_status != EVT_SUCCESS) status = asynError;
+    return status;
+}
+
+asynStatus ADEmergentVision::setEVTFramerate(unsigned int framerate){
+    const char* functionName = "setEVTFramerate";
+    asynStatus status = asynSuccess;
+    this->evt_status = EVT_CameraSetUInt32Param(this->pcamera, "FrameRate", framerate);
+    if(evt_status != EVT_SUCCESS) status = asynError;
+    return status;
+}
+
+/* Getter and setter functions for setting the Framerate of the EVT Camera */
+
+asynStatus ADEmergentVision::getEVTOffsetX(unsigned int* offsetX){
+    const char* functionName = "getEVTOffsetX";
+    asynStatus status = asynSuccess;
+    this->evt_status = EVT_CameraGetUInt32Param(this->pcamera, "OffsetX", offsetX);
+    if(evt_status != EVT_SUCCESS) status = asynError;
+    return status;
+}
+
+asynStatus ADEmergentVision::setEVTOffsetX(unsigned int offsetX){
+    const char* functionName = "setEVTOffsetX";
+    asynStatus status = asynSuccess;
+    this->evt_status = EVT_CameraSetUInt32Param(this->pcamera, "OffsetX", offsetX);
+    if(evt_status != EVT_SUCCESS) status = asynError;
+    return status;
+}
+
+/* Getter and setter functions for setting the Framerate of the EVT Camera */
+
+asynStatus ADEmergentVision::getEVTOffsetY(unsigned int* offsetY){
+    const char* functionName = "getEVTOffsetY";
+    asynStatus status = asynSuccess;
+    this->evt_status = EVT_CameraGetUInt32Param(this->pcamera, "OffsetY", offsetY);
+    if(evt_status != EVT_SUCCESS) status = asynError;
+    return status;
+}
+
+asynStatus ADEmergentVision::setEVTOffsetY(unsigned int offsetY){
+    const char* functionName = "setEVTOffsetY";
+    asynStatus status = asynSuccess;
+    this->evt_status = EVT_CameraSetUInt32Param(this->pcamera, "OffsetY", offsetY);
+    if(evt_status != EVT_SUCCESS) status = asynError;
+    return status;
+}
+
+/* Getter and setter functions for setting the Framerate of the EVT Camera */
+
+asynStatus ADEmergentVision::getEVTPacketSize(unsigned int* packetSize){
+    const char* functionName = "getEVTPacketSize";
+    asynStatus status = asynSuccess;
+    this->evt_status = EVT_CameraGetUInt32Param(this->pcamera, "GevSCPPacketSize", packetSize);
+    if(evt_status != EVT_SUCCESS) status = asynError;
+    return status;
+}
+
+asynStatus ADEmergentVision::setEVTPacketSize(unsigned int packetSize){
+    const char* functionName = "setEVTPacketSize";
+    asynStatus status = asynSuccess;
+    this->evt_status = EVT_CameraSetUInt32Param(this->pcamera, "GevSCPPacketSize", packetSize);
+    if(evt_status != EVT_SUCCESS) status = asynError;
+    return status;
+}
+
+/* Getter and setter functions for setting the Framerate of the EVT Camera */
+
+asynStatus ADEmergentVision::getEVTGain(unsigned int* gainValue){
+    const char* functionName = "getEVTGain";
+    asynStatus status = asynSuccess;
+    this->evt_status = EVT_CameraGetUInt32Param(this->pcamera, "Gain", gainValue);
+    if(evt_status != EVT_SUCCESS) status = asynError;
+    return status;
+}
+
+asynStatus ADEmergentVision::setEVTGain(unsigned int gainValue){
+    const char* functionName = "setEVTGain";
+    asynStatus status = asynSuccess;
+    this->evt_status = EVT_CameraSetUInt32Param(this->pcamera, "Gain", gainValue);
+    if(evt_status != EVT_SUCCESS) status = asynError;
+    return status;
+}
+
+/* Getter and setter functions for setting the Framerate of the EVT Camera */
+
+asynStatus ADEmergentVision::getEVTOffset(unsigned int* offset){
+    const char* functionName = "getEVTOffset";
+    asynStatus status = asynSuccess;
+    this->evt_status = EVT_CameraGetUInt32Param(this->pcamera, "Offset", offset);
+    if(evt_status != EVT_SUCCESS) status = asynError;
+    return status;
+}
+
+asynStatus ADEmergentVision::setEVTOffset(unsigned int offset){
+    const char* functionName = "setEVTOffset";
+    asynStatus status = asynSuccess;
+    this->evt_status = EVT_CameraSetUInt32Param(this->pcamera, "Offset", offset);
+    if(evt_status != EVT_SUCCESS) status = asynError;
+    return status;
+}
+
+/* Getter and setter functions for setting the Framerate of the EVT Camera */
+
+asynStatus ADEmergentVision::getEVTLUTStatus(bool* lutValue){
+    const char* functionName = "getEVTLUTStatus";
+    asynStatus status = asynSuccess;
+    this->evt_status = EVT_CameraGetBoolParam(this->pcamera, "LUTEnable", lutValue);
+    if(evt_status != EVT_SUCCESS) status = asynError;
+    return status;
+}
+
+asynStatus ADEmergentVision::setEVTLUTStatus(bool lutEnable){
+    const char* functionName = "setEVTLUTStatus";
+    asynStatus status = asynSuccess;
+    this->evt_status = EVT_CameraSetBoolParam(this->pcamera, "LUTEnable", lutEnable);
+    if(evt_status != EVT_SUCCESS) status = asynError;
+    return status;
+}
+
+/* Getter and setter functions for setting the Framerate of the EVT Camera */
+
+asynStatus ADEmergentVision::getEVTAutoGain(bool* autoGainValue){
+    const char* functionName = "getEVTAutoGain";
+    asynStatus status = asynSuccess;
+    this->evt_status = EVT_CameraGetBoolParam(this->pcamera, "AutoGain", autoGainValue);
+    if(evt_status != EVT_SUCCESS) status = asynError;
+    return status;
+}
+
+asynStatus ADEmergentVision::setEVTAutoGain(bool autoGainEnable){
+    const char* functionName = "setEVTAutoGain";
+    asynStatus status = asynSuccess;
+    this->evt_status = EVT_CameraSetBoolParam(this->pcamera, "AutoGain", autoGainEnable);
+    if(evt_status != EVT_SUCCESS) status = asynError;
+    return status;
+}
+
+
+
+
 // -----------------------------------------------------------------------
 // ADEmergentVision ADDriver Overrides (WriteInt32/WriteFloat64/report)
 // -----------------------------------------------------------------------
