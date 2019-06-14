@@ -1,8 +1,11 @@
 errlogInit(20000)
 
+#< unique.cmd
+
 < envPaths
+
 #epicsThreadSleep(20)
-dbLoadDatabase("$(TOP)/dbd/evtApp.dbd")
+dbLoadDatabase("$(ADEMERGENTVISION)/iocs/evtIOC/dbd/evtApp.dbd")
 evtApp_registerRecordDeviceDriver(pdbbase) 
 
 # Prefix for all records
@@ -28,8 +31,7 @@ epicsEnvSet("EPICS_CA_MAX_ARRAY_BYTES", 20000000)
 #epicsThreadSleep(15)
 
 
-# If searching for device by serial number, put 0 and 0 for vendor/productID
-# ADEmergentVisionConfig(const char* portName, int maxBuffers, size_t maxMemory, int priority, int stackSize)
+# ADEmergentVisionConfig(const char* portName, char* serialNumber, int maxBuffers, size_t maxMemory, int priority, int stackSize)
 ADEmergentVisionConfig("$(PORT)", "370018", 0, 0, 0, 0)
 
 epicsThreadSleep(2)
@@ -51,13 +53,6 @@ dbLoadRecords("$(ADCORE)/db/NDStdArrays.template", "P=$(PREFIX),R=image1:,PORT=I
 # Load all other plugins using commonPlugins.cmd
 < $(ADCORE)/iocBoot/commonPlugins.cmd
 #
-#Note mpi control pipe out & in reversed.  Names are from the view of the MPI program.
-#NDPipeWriterConfigure("PipeWriter1", 15000, 0, "$(PORT)", "/local/xpcscmdout", "/local/xpcscmdin", 0, 0, 0, 0,0)
-#dbLoadRecords("$(ADCORE)/db/NDPluginPipeWriter.template", "P=$(PREFIX),R=PW1:,  PORT=PipeWriter1,ADDR=0,TIMEOUT=1,NDARRAY_PORT=$(PORT),CMD_IN_PORT=PW_CMD_IN,CMD_OUT_PORT=PW_CMD_OUT")
-
-#Note Local plugin to run the IMM plugin writer
-#NDFileIMMConfigure("IMM1", 15000, 0, "$(PORT)",  0, 0, 0)
-#dbLoadRecords("$(ADCORE)/db/NDFileIMM.template", "P=$(PREFIX),R=IMM1:,PORT=IMM1,ADDR=0,TIMEOUT=1,NDARRAY_PORT=$(PORT)")
 
 set_requestfile_path("$(ADEMERGENTVISION)/evtApp/Db")
 

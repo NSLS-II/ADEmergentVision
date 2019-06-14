@@ -35,7 +35,7 @@ INC += platformsymbols.h
 
 
 ifeq (linux-x86_64, $(findstring linux-x86_64, $(T_A)))
-LIB_INSTALLS_Linux += ../os/$(EPICS_HOST_ARCH)/libEmergentCameraC.so
+#LIB_INSTALLS_Linux += ../os/$(EPICS_HOST_ARCH)/libEmergentCameraC.so
 LIB_INSTALLS_Linux += ../os/$(EPICS_HOST_ARCH)/libEmergentCamera.so
 LIB_INSTALLS_Linux += ../os/$(EPICS_HOST_ARCH)/libEmergentGenICam.so
 LIB_INSTALLS_Linux += ../os/$(EPICS_HOST_ARCH)/libEmergentGigEVision.so
