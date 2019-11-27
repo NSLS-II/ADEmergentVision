@@ -13,11 +13,20 @@ USR_CPPFLAGS += -std=c++11
 
 LIBRARY_IOC = adEVT
 LIB_SRCS += ADEmergentVision.cpp
+#LIB_LIBS += EmergentCameraC
 LIB_LIBS += EmergentCamera
 LIB_LIBS += EmergentGenICam
 LIB_LIBS += EmergentGigEVision
+#LIB_LIBS += vma
 
 #SYS_PROD_LIBS += boost_system
+
+#PROD_LIBS += EmergentCameraC
+#PROD_LIBS += EmergentCamera
+#PROD_LIBS += EmergentGenICam
+#PROD_LIBS += EmergentGigEVision
+#PROD_LIBS += vma
+
 
 DBD += evtSupport.dbd
 
