@@ -26,6 +26,7 @@
 #include <EvtParamAttribute.h>
 #include <gigevisiondeviceinfo.h>
 #include <emergentcameradef.h>
+#include <thread>
 #include "ADDriver.h"
 
 using namespace std;
@@ -55,6 +56,8 @@ class ADEmergentVision : ADDriver {
         // ADDriver overrides
         virtual asynStatus writeInt32(asynUser* pasynUser, epicsInt32 value);
         virtual asynStatus writeFloat64(asynUser* pasynUser, epicsFloat64 value);
+        virtual asynStatus connect(asynUser* pasynUser);
+        virtual asynStatus disconnect(asynUser* pasynUser);
 
         // destructor
         ~ADEmergentVision();
@@ -87,17 +90,20 @@ class ADEmergentVision : ADDriver {
 
     int withShutter = 0;
 
-    // Image thread
+    // Image thread 
     int imageCollectionThreadActive = 0;
-    pthread_t imageCollectionThread;
+    int imageThreadOpen = 0;
 
-    int test_counter = 0;
+
+    const char* serialNumber;
+    int connected = 0;
 
     // ----------------------------
     // EVT Functions for logging/reporting
     // ----------------------------
 
     asynStatus getDeviceInformation();
+    static void exitCallback(void* pEVT);
     void report(FILE* fp, int details);
     void reportEVTError(EVT_ERROR status, const char* functionName);
     void printConnectedDeviceInfo();
@@ -106,7 +112,7 @@ class ADEmergentVision : ADDriver {
     // EVT Functions for connecting to camera
     // ---------------------------
 
-    asynStatus connectToDeviceEVT(const char* serialNumber);
+    asynStatus connectToDeviceEVT();
     asynStatus disconnectFromDeviceEVT();
     asynStatus collectCameraInformation();
 
@@ -138,6 +144,14 @@ class ADEmergentVision : ADDriver {
     asynStatus getEVTAutoGain(bool* autoGainValue);
     asynStatus setEVTAutoGain(bool autoGainEnable);
 
+
+    asynStatus getEVTExposureMax(unsigned int* maxExposure);
+    asynStatus getEVTExposureMin(unsigned int* minExposure);
+    asynStatus getEVTExposureInc(unsigned int* incExposure);
+
+    asynStatus setEVTExposure(unsigned int exposure);
+
+
     // -----------------------------
     // EVT Image acquisition functions
     // -----------------------------
@@ -145,7 +159,7 @@ class ADEmergentVision : ADDriver {
     asynStatus setCameraValues();
     asynStatus getFrameFormatEVT(unsigned int* evtPixelType, NDDataType_t dataType, NDColorMode_t colorMode);
     asynStatus getFrameFormatND(CEmergentFrame* frame, NDDataType_t* dataType, NDColorMode_t* colorMode);
-    asynStatus evtFrame2NDArray(CEmergentFrame* frame, NDArray* pArray);
+    asynStatus evtFrame2NDArray(CEmergentFrame* frame, NDArray** pArray);
     
     void evtCallback();
     static void* evtCallbackWrapper(void* pPtr);

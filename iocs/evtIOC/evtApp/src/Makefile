@@ -18,6 +18,13 @@ $(PROD_NAME)_LIBS += adEVT
 
 $(PROD_NAME)_SYS_LIBS += 
 
+
+PROD_SYS_LIBS_Linux += EmergentCameraC
+PROD_SYS_LIBS_Linux += EmergentCamera
+PROD_SYS_LIBS_Linux += EmergentGenICam
+PROD_SYS_LIBS_Linux += EmergentGigEVision
+#PROD_SYS_LIBS_Linux += vma
+
 #LIB_LIBS_Linux += boost_system-mt
 include $(ADCORE)/ADApp/commonDriverMakefile
 

@@ -1,3 +1,4 @@
+#!/bin/bash
 #
 # Script that moves eSDK libs and includes to the appropriate locations for compiiling ADEmergent Vision
 #
@@ -18,4 +19,4 @@ cd os
 mkdir linux-x86_64
 cd ..
 cp $PATH_EVT/include/* include/.
-cp $PATH_EVT/lib/* os/linux-x86_64/.
+cp -d $PATH_EVT/lib/* os/linux-x86_64/.

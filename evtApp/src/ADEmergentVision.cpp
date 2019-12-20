@@ -18,7 +18,6 @@
 #include <stdio.h>
 #include <string.h>
 
-
 // EPICS includes
 #include <epicsTime.h>
 #include <epicsThread.h>
@@ -76,9 +75,9 @@ extern "C" int ADEmergentVisionConfig(const char* portName, const char* serialNu
  * @params[in]: pPvt -> pointer to the ADEmergentVision object created in ADEmergentVisionConfig
  * @return:     void
  */
-static void exitCallbackC(void* pPvt){
+void ADEmergentVision::exitCallback(void* pPvt){
     ADEmergentVision* pEVT = (ADEmergentVision*) pPvt;
-    delete(pEVT);
+    if (pEVT) delete pEVT;
 }
 
 
@@ -127,11 +126,10 @@ void ADEmergentVision::printConnectedDeviceInfo(){
  * passed to the function. Then, the camera open function is called to initalize the
  * camera object itself.
  * 
- * @params[in]: serialNumber    -> serial number of camera to connect to. Passed through IOC shell
  * @return:     status          -> success if connected, error if not connected
  */
-asynStatus ADEmergentVision::connectToDeviceEVT(const char* serialNumber){
-    const char* functionName = "connectToDeviceEVT()";
+asynStatus ADEmergentVision::connectToDeviceEVT(){
+    const char* functionName = "connectToDeviceEVT";
     unsigned int count, numCameras;
     numCameras = MAX_CAMERAS;
     struct GigEVisionDeviceInfo deviceList[numCameras];
@@ -147,7 +145,7 @@ asynStatus ADEmergentVision::connectToDeviceEVT(const char* serialNumber){
     else{
         unsigned int i;
         for(i = 0; i< count; i++){
-            if(strcmp(deviceList[i].serialNumber, serialNumber) == 0){
+            if(strcmp(deviceList[i].serialNumber, this->serialNumber) == 0){
                 pdeviceInfo = (struct GigEVisionDeviceInfo*) malloc(sizeof(struct GigEVisionDeviceInfo));
                 *pdeviceInfo = deviceList[i];
                 break;
@@ -164,9 +162,30 @@ asynStatus ADEmergentVision::connectToDeviceEVT(const char* serialNumber){
                 reportEVTError(this->evt_status, functionName);
                 return asynError;
             }
+            collectCameraInformation();
+            unsigned int height_max, width_max;
+            //Get resolution.
+            EVT_CameraGetUInt32ParamMax(&camera, "Height", &height_max);
+            EVT_CameraGetUInt32ParamMax(&camera, "Width" , &width_max);
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Resolution: %d by %d\n", driverName, functionName, width_max, height_max);
+
+            setIntegerParam(ADMaxSizeX, width_max);
+            setIntegerParam(ADMaxSizeY, height_max);
+            this->connected = 1;
             return asynSuccess;
         }
     }
+}
+
+
+/**
+ * Override of base ADDriver connect function.
+ * Simply calls the connectToDeviceEVT function and returns the result.
+ * 
+ * @return:     status          -> success if connected, error if not connected
+ */
+asynStatus ADEmergentVision::connect(asynUser* pasynUser) {
+    return connectToDeviceEVT();
 }
 
 
@@ -178,16 +197,39 @@ asynStatus ADEmergentVision::connectToDeviceEVT(const char* serialNumber){
  * @return: status  -> success if freed, error if never connected
  */
 asynStatus ADEmergentVision::disconnectFromDeviceEVT(){
+    this->connected = 0;
     const char* functionName = "disconnectFromDeviceEVT";
+    int acquiring;
+    getIntegerParam(ADAcquire, &acquiring);
+    if(acquiring) acquireStop();
     if(this->pdeviceInfo == NULL || this->pcamera == NULL){
         asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Never connected to device\n", driverName, functionName);
         return asynError;
     }
     else{
         free(this->pdeviceInfo);
-        EVT_CameraClose(pcamera);
+        asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Closing camera connection\n", driverName, functionName);
+
+        this->evt_status = EVT_CameraClose(this->pcamera);
+        if(this->evt_status != EVT_SUCCESS){
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s ERROR - Could not close camera correctly\n", driverName, functionName);
+            reportEVTError(this->evt_status, functionName);
+            return asynError;
+        }
+        printf("Disconnected from device.\n");
         return asynSuccess;
     }
+}
+
+
+/**
+ * Override of base ADDriver disconnect function.
+ * Simply calls the disconnectFromDeviceEVT function and returns the result.
+ * 
+ * @return:     status          -> success if disconnected, error if not disconnected
+ */
+asynStatus ADEmergentVision::disconnect(asynUser* pasynUser){
+    return disconnectFromDeviceEVT();
 }
 
 
@@ -198,13 +240,13 @@ asynStatus ADEmergentVision::disconnectFromDeviceEVT(){
  */
 asynStatus ADEmergentVision::collectCameraInformation(){
     const char* functionName = "collectCameraInformation";
-    asynStatus status = asynSuccess;
+    if (connected == 0) return asynError;
     asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Collecting camera information\n", driverName, functionName);
     setStringParam(ADManufacturer, this->pdeviceInfo->manufacturerName);
     setStringParam(ADSerialNumber, this->pdeviceInfo->serialNumber);
     setStringParam(ADFirmwareVersion,this->pdeviceInfo->deviceVersion);
     setStringParam(ADModel, this->pdeviceInfo->modelName);
-    return status;
+    return asynSuccess;
 }
 
 
@@ -221,8 +263,7 @@ asynStatus ADEmergentVision::collectCameraInformation(){
  * return: void
  */
 asynStatus ADEmergentVision::setCameraValues(){
-    const char* functionName = "setCameraValues";
-    //asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Unimplemented\n", driverName, functionName);
+    if (connected == 0) return asynError;
     EVT_CameraSetEnumParam(this->pcamera,   "AcquisitionMode",        "MultiFrame");
     EVT_CameraSetUInt32Param(this->pcamera, "AcquisitionFrameCount",  NUM_FRAMES);
     EVT_CameraSetEnumParam(this->pcamera,   "TriggerSelector",        "FrameStart");
@@ -230,7 +271,6 @@ asynStatus ADEmergentVision::setCameraValues(){
     EVT_CameraSetEnumParam(this->pcamera,   "TriggerSource",          "Software");
     EVT_CameraSetEnumParam(this->pcamera,   "BufferMode",             "Off");
     EVT_CameraSetUInt32Param(this->pcamera, "BufferNum",              0);
-
     return asynSuccess;
 }
 
@@ -244,20 +284,11 @@ asynStatus ADEmergentVision::startImageAcquisitionThread(){
     const char* functionName = "startImageAcquisitionThread";
     asynStatus status;
     if(this->imageCollectionThreadActive == 0){
-        if(pthread_create(&this->imageCollectionThread, NULL, evtCallbackWrapper, this)){
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error creating Image Acquisition thread\n", driverName, functionName);
-            status = asynError;
-        }
-        else{
-            this->imageCollectionThreadActive = 1;
-            asynPrint(this->pasynUserSelf, ASYN_TRACEIO_DRIVER, "%s::%s Image Thread Created\n", driverName, functionName);
-            int detached = pthread_detach(this->imageCollectionThread);
-            if(detached) status = asynSuccess;
-            else{
-                asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Unable to detach image acquisition thread\n", driverName, functionName);
-                status = asynError;
-            }
-        }
+        this->imageCollectionThreadActive = 1;
+        thread imageThread(evtCallbackWrapper, this);
+        imageThread.detach();
+        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Image Thread Created\n", driverName, functionName);
+        status = asynSuccess;
     }
     else{
         asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Acquisition thread already active\n", driverName, functionName);
@@ -269,8 +300,7 @@ asynStatus ADEmergentVision::startImageAcquisitionThread(){
 
 /**
  * Function that stops the image acquisition thread
- * Sets flag for active to false and then calls pthread join.
- * 
+ * Sets flag for active to false.
  * 
  */
 asynStatus ADEmergentVision::stopImageAcquisitionThread(){
@@ -281,18 +311,8 @@ asynStatus ADEmergentVision::stopImageAcquisitionThread(){
         status = asynError;
     }
     else{
-        imageCollectionThreadActive = 0;
+        this->imageCollectionThreadActive = 0;
         asynPrint(this->pasynUserSelf, ASYN_TRACEIO_DRIVER, "%s::%s Stopping image acquisition thread\n", driverName, functionName);
-        /*
-        if(pthread_join(this->imageCollectionThread, NULL)){
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error joining image collection thread\n", driverName, functionName);
-            status = asynError;
-        }
-        else{
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Joined Image Acquisition thread\n", driverName, functionName);
-            status = asynSuccess;
-        }
-        */
     }
     return status;
 }
@@ -307,6 +327,7 @@ asynStatus ADEmergentVision::stopImageAcquisitionThread(){
  */
 asynStatus ADEmergentVision::acquireStart(){
     const char* functionName = "acquireStart";
+    if (connected == 0) return asynError;
     asynStatus status;
     if(this->pcamera == NULL){
         asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error: No camera connected\n", driverName, functionName);
@@ -345,14 +366,18 @@ asynStatus ADEmergentVision::acquireStart(){
  */ 
 asynStatus ADEmergentVision::acquireStop(){
     const char* functionName = "acquireStop";
+    if (connected == 0) return asynError;
     asynStatus status;
     if(this->pcamera == NULL){
         asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error: No camera connected\n", driverName, functionName);
         status = asynError;
     }
     else{
+        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Stopping image acquisition thread\n", driverName, functionName);
         stopImageAcquisitionThread();
-        this->evt_status = EVT_CameraCloseStream(pcamera);
+        while(this->imageThreadOpen == 1)
+            epicsThreadSleep(0.1);
+        this->evt_status = EVT_CameraCloseStream(this->pcamera);
         if(this->evt_status != EVT_SUCCESS){
             reportEVTError(this->evt_status, functionName);
             status = asynError;
@@ -362,7 +387,7 @@ asynStatus ADEmergentVision::acquireStop(){
     setIntegerParam(ADStatus, ADStatusIdle);
     setIntegerParam(ADAcquire, 0);
     callParamCallbacks();
-    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Stopping Image Acquisition\n", driverName, functionName);
+    asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Stopped Image Acquisition\n", driverName, functionName);
     return status;
 }
 
@@ -491,15 +516,15 @@ asynStatus ADEmergentVision::getFrameFormatND(CEmergentFrame* frame, NDDataType_
  * @params[out]:    pArray  -> NDArray output that is pushed out to ArrayData PV
  * @return:         status  -> success if copied, error if alloc/copy failed
  */
-asynStatus ADEmergentVision::evtFrame2NDArray(CEmergentFrame* frame, NDArray* pArray){
+asynStatus ADEmergentVision::evtFrame2NDArray(CEmergentFrame* frame, NDArray** pArray){
     const char* functionName = "evtFrame2NDArray";
     asynStatus status = asynSuccess;
     int ndims;
     NDDataType_t dataType;
     NDColorMode_t colorMode;
-    NDArrayInfo arrayInfo;
     int xsize;
     int ysize;
+    NDArrayInfo arrayInfo;
     status = getFrameFormatND(frame, &dataType, &colorMode);
     if(status == asynError){
         asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error computing dType and color mode\n", driverName, functionName);
@@ -523,19 +548,17 @@ asynStatus ADEmergentVision::evtFrame2NDArray(CEmergentFrame* frame, NDArray* pA
         }
 
         this->pArrays[0] = pNDArrayPool->alloc(ndims, dims, dataType, 0, NULL);
-        if(this->pArrays[0]!=NULL) pArray = this->pArrays[0];
+        if(this->pArrays[0]!=NULL) (*pArray) = this->pArrays[0];
         else{
             this->pArrays[0]->release();
             asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Unable to allocate array\n", driverName, functionName);
-	        return asynError;
-        }    
-        pArray->getInfo(&arrayInfo);
+            return asynError;
+        }
+        (*pArray)->getInfo(&arrayInfo);
         size_t total_size = arrayInfo.totalBytes;
-        memcpy((unsigned char*)pArray->pData, frame->imagePtr, total_size);
-        pArray->pAttributeList->add("ColorMode", "Color Mode", NDAttrInt32, &colorMode);
-        getAttributes(pArray->pAttributeList);
-        doCallbacksGenericPointer(pArray, NDArrayData, 0);
-        pArray->release();
+        memcpy((unsigned char*)(*pArray)->pData, frame->imagePtr, total_size);
+        (*pArray)->pAttributeList->add("ColorMode", "Color Mode", NDAttrInt32, &colorMode);
+        getAttributes((*pArray)->pAttributeList);
         return asynSuccess;
     }
 }
@@ -543,6 +566,7 @@ asynStatus ADEmergentVision::evtFrame2NDArray(CEmergentFrame* frame, NDArray* pA
 void* ADEmergentVision::evtCallbackWrapper(void* pPtr){
     ADEmergentVision* pEVT = (ADEmergentVision*) pPtr;
     pEVT->evtCallback();
+    return NULL;
 }
 
 
@@ -555,9 +579,11 @@ void* ADEmergentVision::evtCallbackWrapper(void* pPtr){
 void ADEmergentVision::evtCallback(){
     const char* functionName = "evtCallback";
 
+    this->imageThreadOpen = 1;
+
     while(this->imageCollectionThreadActive == 1){
         NDArray* pArray;
-        //NDArrayInfo arrayInfo;
+        NDArrayInfo arrayInfo;
         CEmergentFrame frames[NUM_FRAMES];
         asynStatus status;
         int imageMode;
@@ -577,57 +603,84 @@ void ADEmergentVision::evtCallback(){
             asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error finding evt frame format\n", driverName, functionName);
         }
         else{
-            //printf("running acquire start command\n");
-            EVT_CameraExecuteCommand(this->pcamera, "AcquisitionStart");
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Arm detector\n", driverName, functionName);
+            EVT_ERROR err = EVT_CameraExecuteCommand(this->pcamera, "AcquisitionStart");
+            if(err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraExecuteCommand");
 
             frames[0].size_x = xsize;
             frames[0].size_y = ysize;
             frames[0].pixel_type = (PIXEL_FORMAT) evtPixelType;
 
-            //printf("allocating frame buffer command\n");
-            EVT_ERROR err = EVT_AllocateFrameBuffer(this->pcamera, &frames[0], EVT_FRAME_BUFFER_ZERO_COPY);
-            if(err != EVT_SUCCESS) reportEVTError(err, functionName);
-            else{
-                EVT_CameraQueueFrame(this->pcamera, &frames[0]);
-            }
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Arm detector\n", driverName, functionName);
+            printf("allocating frame buffer command\n");
+            if(err == EVT_SUCCESS) err = EVT_AllocateFrameBuffer(this->pcamera, &frames[0], EVT_FRAME_BUFFER_ZERO_COPY);
+            if(err != EVT_SUCCESS) reportEVTError(err, "EVT_AllocateFrameBuffer");
+            
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Queue camera frame\n", driverName, functionName);
+            if(err == EVT_SUCCESS) err = EVT_CameraQueueFrame(this->pcamera, &frames[0]);
+            if(err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraQueueFrame");
 
-            //printf("triggering w/ software\n");
-            EVT_CameraExecuteCommand(this->pcamera, "TriggerSoftware");
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Triggering w/ software\n", driverName, functionName);
+            if(err == EVT_SUCCESS) err = EVT_CameraExecuteCommand(this->pcamera, "TriggerSoftware");
+            if(err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraExecuteCommand");
 
-            EVT_CameraGetFrame(this->pcamera, &frames[0], EVT_INFINITE);
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Grabbing frame\n", driverName, functionName);
+            if(err == EVT_SUCCESS) err = EVT_CameraGetFrame(this->pcamera, &frames[0], EVT_INFINITE);
+            if(err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraGetFrame");
 
-            EVT_CameraExecuteCommand(&camera, "AcquisitionStop");
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Stopping Acquisition\n", driverName, functionName);
+            if(err == EVT_SUCCESS) err = EVT_CameraExecuteCommand(&camera, "AcquisitionStop");
+            if(err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraExecuteCommand");
 
-            //EVT_ERROR err2 = EVT_FrameSave(&frames[0], "random_test.tif", EVT_FILETYPE_TIF, EVT_ALIGN_NONE);
+            // Only process the frame if we successfully finished all of the above commands.
+            if(err == EVT_SUCCESS){
+                printf("Converting to NDArray\n");
+                status = evtFrame2NDArray(frames, &pArray);
+                if(status == asynSuccess){
+                    printf("Converted to NDArray\n");
+                    doCallbacksGenericPointer(pArray, NDArrayData, 0);
+                    pArray->getInfo(&arrayInfo);
+                    size_t total_size = arrayInfo.totalBytes;
+                    pArray->uniqueId = imageCounter;
+                    updateTimeStamp(&pArray->epicsTS);
+                    setIntegerParam(NDArraySize, (int)total_size);
+                    setIntegerParam(NDArraySizeX, arrayInfo.xSize);
+                    setIntegerParam(NDArraySizeY, arrayInfo.ySize);
 
-            status = evtFrame2NDArray(frames, pArray);
-            EVT_ReleaseFrameBuffer(this->pcamera, &frames[0]);
-            imageCounter++;
-            setIntegerParam(ADNumImagesCounter, imageCounter);
-            //printf("Num Images: %d\n", imageCounter);
-            //printf("gets past conversion process\n");
-            if(status == asynError){
-                asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error converting to NDArray\n", driverName, functionName);
-                acquireStop();
-                break;
-            }
-            if(imageMode == ADImageSingle){
-                acquireStop();
-                asynPrint(this->pasynUserSelf, ASYN_TRACEIO_DRIVER, "%s::%s Done acquiring\n", driverName, functionName);
-            }
-            else if(imageMode == ADImageMultiple){
-                printf("thinks it is multiple\n");
-                int numImages;
-                getIntegerParam(ADNumImages, &numImages);
+                    pArray->release();
+                }
 
-                if(imageCounter == numImages){
+                printf("RELEASING FRAME BUFFER\n");
+                if(err == EVT_SUCCESS) err = EVT_ReleaseFrameBuffer(this->pcamera, &frames[0]);
+                if(err != EVT_SUCCESS) reportEVTError(err, "EVT_ReleaseFrameBuffer");
+                getIntegerParam(ADNumImagesCounter, &imageCounter);
+                imageCounter++;
+                setIntegerParam(ADNumImagesCounter, imageCounter);
+
+                if(status == asynError){
+                    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error converting to NDArray\n", driverName, functionName);
                     acquireStop();
-                    asynPrint(this->pasynUserSelf, ASYN_TRACEIO_DRIVER, "%s::%s Done\n", driverName, functionName);
+                    break;
+                }
+                if(imageMode == ADImageSingle){
+                    acquireStop();
+                    asynPrint(this->pasynUserSelf, ASYN_TRACEIO_DRIVER, "%s::%s Done acquiring\n", driverName, functionName);
+                }
+                else if(imageMode == ADImageMultiple){
+                    printf("thinks it is multiple\n");
+                    int numImages;
+                    getIntegerParam(ADNumImages, &numImages);
+
+                    if(imageCounter == numImages){
+                        acquireStop();
+                        asynPrint(this->pasynUserSelf, ASYN_TRACEIO_DRIVER, "%s::%s Done\n", driverName, functionName);
+                    }
                 }
             }
         }
-        //printf("done with first loop iteration\n");
+        printf("done with first loop iteration\n");
     }
+    this->imageThreadOpen = 0;
 }
 
 
@@ -641,17 +694,25 @@ void ADEmergentVision::evtCallback(){
 
 asynStatus ADEmergentVision::getEVTFramerate(unsigned int* framerate){
     const char* functionName = "getEVTFramerate";
+    if(this->connected == 0) return asynError;
     asynStatus status = asynSuccess;
     this->evt_status = EVT_CameraGetUInt32Param(this->pcamera, "FrameRate", framerate);
-    if(evt_status != EVT_SUCCESS) status = asynError;
+    if(evt_status != EVT_SUCCESS){
+        status = asynError;
+        reportEVTError(evt_status, functionName);
+    }
     return status;
 }
 
 asynStatus ADEmergentVision::setEVTFramerate(unsigned int framerate){
     const char* functionName = "setEVTFramerate";
+    if(this->connected == 0) return asynError;
     asynStatus status = asynSuccess;
     this->evt_status = EVT_CameraSetUInt32Param(this->pcamera, "FrameRate", framerate);
-    if(evt_status != EVT_SUCCESS) status = asynError;
+    if(evt_status != EVT_SUCCESS){
+        status = asynError;
+        reportEVTError(evt_status, functionName);
+    }
     return status;
 }
 
@@ -659,17 +720,25 @@ asynStatus ADEmergentVision::setEVTFramerate(unsigned int framerate){
 
 asynStatus ADEmergentVision::getEVTOffsetX(unsigned int* offsetX){
     const char* functionName = "getEVTOffsetX";
+    if(this->connected == 0) return asynError;
     asynStatus status = asynSuccess;
     this->evt_status = EVT_CameraGetUInt32Param(this->pcamera, "OffsetX", offsetX);
-    if(evt_status != EVT_SUCCESS) status = asynError;
+    if(evt_status != EVT_SUCCESS){
+        status = asynError;
+        reportEVTError(evt_status, functionName);
+    }
     return status;
 }
 
 asynStatus ADEmergentVision::setEVTOffsetX(unsigned int offsetX){
     const char* functionName = "setEVTOffsetX";
+    if(this->connected == 0) return asynError;
     asynStatus status = asynSuccess;
     this->evt_status = EVT_CameraSetUInt32Param(this->pcamera, "OffsetX", offsetX);
-    if(evt_status != EVT_SUCCESS) status = asynError;
+    if(evt_status != EVT_SUCCESS){
+        status = asynError;
+        reportEVTError(evt_status, functionName);
+    }
     return status;
 }
 
@@ -677,17 +746,25 @@ asynStatus ADEmergentVision::setEVTOffsetX(unsigned int offsetX){
 
 asynStatus ADEmergentVision::getEVTOffsetY(unsigned int* offsetY){
     const char* functionName = "getEVTOffsetY";
+    if(this->connected == 0) return asynError;
     asynStatus status = asynSuccess;
     this->evt_status = EVT_CameraGetUInt32Param(this->pcamera, "OffsetY", offsetY);
-    if(evt_status != EVT_SUCCESS) status = asynError;
+    if(evt_status != EVT_SUCCESS){
+        status = asynError;
+        reportEVTError(evt_status, functionName);
+    }
     return status;
 }
 
 asynStatus ADEmergentVision::setEVTOffsetY(unsigned int offsetY){
     const char* functionName = "setEVTOffsetY";
+    if(this->connected == 0) return asynError;
     asynStatus status = asynSuccess;
     this->evt_status = EVT_CameraSetUInt32Param(this->pcamera, "OffsetY", offsetY);
-    if(evt_status != EVT_SUCCESS) status = asynError;
+    if(evt_status != EVT_SUCCESS){
+        status = asynError;
+        reportEVTError(evt_status, functionName);
+    }
     return status;
 }
 
@@ -695,17 +772,25 @@ asynStatus ADEmergentVision::setEVTOffsetY(unsigned int offsetY){
 
 asynStatus ADEmergentVision::getEVTPacketSize(unsigned int* packetSize){
     const char* functionName = "getEVTPacketSize";
+    if(this->connected == 0) return asynError;
     asynStatus status = asynSuccess;
     this->evt_status = EVT_CameraGetUInt32Param(this->pcamera, "GevSCPPacketSize", packetSize);
-    if(evt_status != EVT_SUCCESS) status = asynError;
+    if(evt_status != EVT_SUCCESS){
+        status = asynError;
+        reportEVTError(evt_status, functionName);
+    }
     return status;
 }
 
 asynStatus ADEmergentVision::setEVTPacketSize(unsigned int packetSize){
     const char* functionName = "setEVTPacketSize";
+    if(this->connected == 0) return asynError;
     asynStatus status = asynSuccess;
     this->evt_status = EVT_CameraSetUInt32Param(this->pcamera, "GevSCPPacketSize", packetSize);
-    if(evt_status != EVT_SUCCESS) status = asynError;
+    if(evt_status != EVT_SUCCESS){
+        status = asynError;
+        reportEVTError(evt_status, functionName);
+    }
     return status;
 }
 
@@ -713,17 +798,25 @@ asynStatus ADEmergentVision::setEVTPacketSize(unsigned int packetSize){
 
 asynStatus ADEmergentVision::getEVTGain(unsigned int* gainValue){
     const char* functionName = "getEVTGain";
+    if(this->connected == 0) return asynError;
     asynStatus status = asynSuccess;
     this->evt_status = EVT_CameraGetUInt32Param(this->pcamera, "Gain", gainValue);
-    if(evt_status != EVT_SUCCESS) status = asynError;
+    if(evt_status != EVT_SUCCESS){
+        status = asynError;
+        reportEVTError(evt_status, functionName);
+    }
     return status;
 }
 
 asynStatus ADEmergentVision::setEVTGain(unsigned int gainValue){
     const char* functionName = "setEVTGain";
+    if(this->connected == 0) return asynError;
     asynStatus status = asynSuccess;
     this->evt_status = EVT_CameraSetUInt32Param(this->pcamera, "Gain", gainValue);
-    if(evt_status != EVT_SUCCESS) status = asynError;
+    if(evt_status != EVT_SUCCESS){
+        status = asynError;
+        reportEVTError(evt_status, functionName);
+    }
     return status;
 }
 
@@ -731,17 +824,25 @@ asynStatus ADEmergentVision::setEVTGain(unsigned int gainValue){
 
 asynStatus ADEmergentVision::getEVTOffset(unsigned int* offset){
     const char* functionName = "getEVTOffset";
+    if(this->connected == 0) return asynError;
     asynStatus status = asynSuccess;
     this->evt_status = EVT_CameraGetUInt32Param(this->pcamera, "Offset", offset);
-    if(evt_status != EVT_SUCCESS) status = asynError;
+    if(evt_status != EVT_SUCCESS){
+        status = asynError;
+        reportEVTError(evt_status, functionName);
+    }
     return status;
 }
 
 asynStatus ADEmergentVision::setEVTOffset(unsigned int offset){
     const char* functionName = "setEVTOffset";
+    if(this->connected == 0) return asynError;
     asynStatus status = asynSuccess;
     this->evt_status = EVT_CameraSetUInt32Param(this->pcamera, "Offset", offset);
-    if(evt_status != EVT_SUCCESS) status = asynError;
+    if(evt_status != EVT_SUCCESS){
+        status = asynError;
+        reportEVTError(evt_status, functionName);
+    }
     return status;
 }
 
@@ -749,17 +850,25 @@ asynStatus ADEmergentVision::setEVTOffset(unsigned int offset){
 
 asynStatus ADEmergentVision::getEVTLUTStatus(bool* lutValue){
     const char* functionName = "getEVTLUTStatus";
+    if(this->connected == 0) return asynError;
     asynStatus status = asynSuccess;
     this->evt_status = EVT_CameraGetBoolParam(this->pcamera, "LUTEnable", lutValue);
-    if(evt_status != EVT_SUCCESS) status = asynError;
+    if(evt_status != EVT_SUCCESS){
+        status = asynError;
+        reportEVTError(evt_status, functionName);
+    }
     return status;
 }
 
 asynStatus ADEmergentVision::setEVTLUTStatus(bool lutEnable){
     const char* functionName = "setEVTLUTStatus";
+    if(this->connected == 0) return asynError;
     asynStatus status = asynSuccess;
     this->evt_status = EVT_CameraSetBoolParam(this->pcamera, "LUTEnable", lutEnable);
-    if(evt_status != EVT_SUCCESS) status = asynError;
+    if(evt_status != EVT_SUCCESS){
+        status = asynError;
+        reportEVTError(evt_status, functionName);
+    }
     return status;
 }
 
@@ -767,20 +876,88 @@ asynStatus ADEmergentVision::setEVTLUTStatus(bool lutEnable){
 
 asynStatus ADEmergentVision::getEVTAutoGain(bool* autoGainValue){
     const char* functionName = "getEVTAutoGain";
+    if(this->connected == 0) return asynError;
     asynStatus status = asynSuccess;
     this->evt_status = EVT_CameraGetBoolParam(this->pcamera, "AutoGain", autoGainValue);
-    if(evt_status != EVT_SUCCESS) status = asynError;
+    if(evt_status != EVT_SUCCESS){
+        status = asynError;
+        reportEVTError(evt_status, functionName);
+    }
     return status;
 }
 
 asynStatus ADEmergentVision::setEVTAutoGain(bool autoGainEnable){
     const char* functionName = "setEVTAutoGain";
+    if(this->connected == 0) return asynError;
     asynStatus status = asynSuccess;
     this->evt_status = EVT_CameraSetBoolParam(this->pcamera, "AutoGain", autoGainEnable);
-    if(evt_status != EVT_SUCCESS) status = asynError;
+    if(evt_status != EVT_SUCCESS){
+        status = asynError;
+        reportEVTError(evt_status, functionName);
+    }
     return status;
 }
 
+
+asynStatus ADEmergentVision::getEVTExposureMax(unsigned int* maxExposure){
+    const char* functionName = "getEVTExposureMax";
+    if(this->connected == 0) return asynError;
+    asynStatus status = asynSuccess;
+    this->evt_status = EVT_CameraGetUInt32ParamMax(this->pcamera, "Exposure", maxExposure);
+    if(evt_status != EVT_SUCCESS){
+        status = asynError;
+        reportEVTError(evt_status, functionName);
+    }
+    return status;
+}
+
+asynStatus ADEmergentVision::getEVTExposureMin(unsigned int* minExposure){
+    const char* functionName = "getEVTExposureMin";
+    if(this->connected == 0) return asynError;
+    asynStatus status = asynSuccess;
+    this->evt_status = EVT_CameraGetUInt32ParamMin(this->pcamera, "Exposure", minExposure);
+    if(evt_status != EVT_SUCCESS){
+        status = asynError;
+        reportEVTError(evt_status, functionName);
+    }
+    return status;
+}
+
+asynStatus ADEmergentVision::getEVTExposureInc(unsigned int* incExposure){
+    const char* functionName = "getEVTExposureInc";
+    if(this->connected == 0) return asynError;
+    asynStatus status = asynSuccess;
+    this->evt_status = EVT_CameraGetUInt32ParamInc(this->pcamera, "Exposure", incExposure);
+    if(evt_status != EVT_SUCCESS){
+        status = asynError;
+        reportEVTError(evt_status, functionName);
+    }
+    return status;
+}
+
+
+asynStatus ADEmergentVision::setEVTExposure(unsigned int exposure){
+    const char* functionName = "setEVTExposure";
+    if(this->connected == 0) return asynError;
+    unsigned int maxExposure;
+    unsigned int minExposure;
+    asynStatus status;
+    getEVTExposureMax(&maxExposure);
+    getEVTExposureMin(&minExposure);
+    if(exposure >= minExposure && exposure <= maxExposure){
+        status = asynSuccess;
+        this->evt_status = EVT_CameraSetBoolParam(this->pcamera, "AutoGain", exposure);
+        if(evt_status != EVT_SUCCESS){
+            status = asynError;
+            reportEVTError(evt_status, functionName);
+        }
+    }
+    else {
+        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s ERROR, Exposure time can be between %d and %d\n", driverName, functionName, minExposure, maxExposure);
+        status = asynError;
+    }
+    return status;
+}
 
 
 
@@ -823,6 +1000,9 @@ asynStatus ADEmergentVision::writeInt32(asynUser* pasynUser, epicsInt32 value){
             if(value == ADImageSingle) setIntegerParam(ADNumImages, 1);
             else if(value == ADImageMultiple) setIntegerParam(ADNumImages, 100);
         }
+        else if(function == ADEVT_Framerate) status = setEVTFramerate((unsigned int) value);
+        else if(function == ADEVT_OffsetX) status = setEVTOffsetX((unsigned int) value);
+        else if (function == ADEVT_LUTEnable) status = setEVTLUTStatus(value > 0);
         else if(function < ADEVT_FIRST_PARAM){
             status = ADDriver::writeInt32(pasynUser, value);
         }
@@ -850,8 +1030,16 @@ asynStatus ADEmergentVision::writeFloat64(asynUser* pasynUser, epicsFloat64 valu
     const char* functionName = "writeFloat64";
     getIntegerParam(ADAcquire, &acquiring);
 
-    status = setIntegerParam(function, value);
-    if(function < ADEVT_FIRST_PARAM){
+    status = setDoubleParam(function, value);
+    if(function == ADAcquireTime){
+        if(acquiring == 1){
+            acquireStop();
+        }
+        // exposure time is an integer in milliseconds.
+        unsigned int exposureTime = (unsigned int) (value * 1000);
+        status = setEVTExposure(exposureTime);
+    }
+    else if(function < ADEVT_FIRST_PARAM){
         status = ADDriver::writeFloat64(pasynUser, value);
     }
     callParamCallbacks();
@@ -906,7 +1094,7 @@ void ADEmergentVision::report(FILE* fp, int details){
  */
 ADEmergentVision::ADEmergentVision(const char* portName, const char* serialNumber, int maxBuffers, size_t maxMemory, int priority, int stackSize)
     : ADDriver(portName, 1, (int)NUM_EVT_PARAMS, maxBuffers, maxMemory, asynEnumMask, asynEnumMask, ASYN_CANBLOCK, 1, priority, stackSize){
-    
+
     asynStatus status;
 
     const char* functionName = "ADEmergentVision";
@@ -923,18 +1111,10 @@ ADEmergentVision::ADEmergentVision(const char* portName, const char* serialNumbe
         status = asynError;
     }
     else{
-        status = connectToDeviceEVT(serialNumber);
+        this->serialNumber = serialNumber;
+        status = connectToDeviceEVT();
     }
-    if(status == asynSuccess) collectCameraInformation();
-    unsigned int height_max, width_max;
-    //Get resolution.
-    EVT_CameraGetUInt32ParamMax(&camera, "Height", &height_max);
-    EVT_CameraGetUInt32ParamMax(&camera, "Width" , &width_max);
-    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Resolution: %d by %d\n", driverName, functionName, width_max, height_max);
 
-    setIntegerParam(ADSizeX, width_max);
-    setIntegerParam(ADSizeY, height_max);
-    
     // Create PV Parameters
     createParam(ADEVT_PixelFormatString,        asynParamInt32,     &ADEVT_PixelFormat);
     createParam(ADEVT_FramerateString,          asynParamInt32,     &ADEVT_Framerate);
@@ -946,16 +1126,21 @@ ADEmergentVision::ADEmergentVision(const char* portName, const char* serialNumbe
     createParam(ADEVT_LUTEnableString,          asynParamInt32,     &ADEVT_LUTEnable);
     createParam(ADEVT_AutoGainString,           asynParamInt32,     &ADEVT_AutoGain);
 
-    epicsAtExit(exitCallbackC, this);
+    if(status == asynError)
+        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Failed to connect to device\n", driverName, functionName);
+
+    epicsAtExit(exitCallback, (void*) this);
 }
 
 
 /* ADEmergentVision Destructor */
 ADEmergentVision::~ADEmergentVision(){
     const char* functionName = "~ADEmergentVision";
+    printf("Uninitializing Emergent Vision Detector API.\n");
+    this->lock();
     disconnectFromDeviceEVT();
-    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s ADEmergentVision driver exiting\n", driverName, functionName);
-    disconnect(this->pasynUserSelf);
+    this->unlock();
+    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s ADEmergentVision Driver Exiting...\n", driverName, functionName);
 }
 
 
