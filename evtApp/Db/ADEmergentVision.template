@@ -27,6 +27,7 @@ record(ao, "$(P)$(R)EVTFramerate"){
     field(PINI, "YES")
     field(DTYP, "asynInt32")
     field(OUT, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_FRAMERATE")
+    field(VAL, "30")
 }
 
 record(ai, "$(P)$(R)EVTFramerate_RBV"){
@@ -42,6 +43,7 @@ record(ao, "$(P)$(R)EVTOffsetX"){
     field(PINI, "YES")
     field(DTYP, "asynInt32")
     field(OUT, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_OFFX")
+    field(VAL, "0")
 }
 
 record(ai, "$(P)$(R)EVTOffsetX_RBV"){
@@ -57,6 +59,7 @@ record(ao, "$(P)$(R)EVTOffsetY"){
     field(PINI, "YES")
     field(DTYP, "asynInt32")
     field(OUT, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_OFFY")
+    field(VAL, "0")
 }
 
 record(ai, "$(P)$(R)EVTOffsetY_RBV"){
@@ -68,15 +71,22 @@ record(ai, "$(P)$(R)EVTOffsetY_RBV"){
 ##############################################
 # stores the BufferMode for EVT camera
 ################################################
-record(ao, "$(P)$(R)EVTBuffMode"){
+record(bo, "$(P)$(R)EVTBuffMode"){
     field(PINI, "YES")
     field(DTYP, "asynInt32")
     field(OUT, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_BUFF_MODE")
+    field(ZNAM, "Off")
+    field(ONAM, "On")
+    field(VAL, "0")
+    info(autosaveFields, "VAL")
 }
 
-record(ai, "$(P)$(R)EVTBuffMode_RBV"){
+record(bi, "$(P)$(R)EVTBuffMode_RBV"){
     field(DTYP, "asynInt32")
     field(INP, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_BUFF_MODE")
+    field(ZNAM, "Off")
+    field(ONAM, "On")
+    field(OSV,  "MINOR")
     field(SCAN, "I/O Intr")
 }
 
@@ -87,6 +97,7 @@ record(ao, "$(P)$(R)EVTBuffNum"){
     field(PINI, "YES")
     field(DTYP, "asynInt32")
     field(OUT, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_BUFF_NUM")
+    field(VAL, "0")
 }
 
 record(ai, "$(P)$(R)EVTBuffNum_RBV"){
@@ -113,29 +124,43 @@ record(ai, "$(P)$(R)EVTPacketSize_RBV"){
 ##############################################
 # stores the LUT Enable for EVT camera
 ################################################
-record(ao, "$(P)$(R)EVTLUTEnable"){
+record(bo, "$(P)$(R)EVTLUTEnable"){
     field(PINI, "YES")
     field(DTYP, "asynInt32")
     field(OUT, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_LUT")
+    field(ZNAM, "Disable")
+    field(ONAM, "Enable")
+    field(VAL, "0")
+    field(OSV,  "MINOR")
+    info(autosaveFields, "VAL")
 }
 
-record(ai, "$(P)$(R)EVTLUTEnable_RBV"){
+record(bi, "$(P)$(R)EVTLUTEnable_RBV"){
     field(DTYP, "asynInt32")
     field(INP, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_LUT")
+    field(ZNAM, "Disable")
+    field(ONAM, "Enable")
     field(SCAN, "I/O Intr")
 }
 
 ##############################################
 # stores the Auto Gain for EVT camera
 ################################################
-record(ao, "$(P)$(R)EVTAutoGain"){
+record(bo, "$(P)$(R)EVTAutoGain"){
     field(PINI, "YES")
     field(DTYP, "asynInt32")
     field(OUT, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_AUTOGAIN")
+    field(ZNAM, "Disable")
+    field(ONAM, "Enable")
+    field(VAL, "0")
+    field(OSV,  "MINOR")
+    info(autosaveFields, "VAL")
 }
 
-record(ai, "$(P)$(R)EVTAutoGain_RBV"){
+record(bi, "$(P)$(R)EVTAutoGain_RBV"){
     field(DTYP, "asynInt32")
     field(INP, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_AUTOGAIN")
+    field(ZNAM, "Disable")
+    field(ONAM, "Enable")
     field(SCAN, "I/O Intr")
 }
