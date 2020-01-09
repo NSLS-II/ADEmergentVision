@@ -18,7 +18,7 @@
 // version numbers
 #define ADEMERGENTVISION_VERSION        0
 #define ADEMERGENTVISION_REVISION       0
-#define ADEMERGENTVISION_MODIFICATION   0
+#define ADEMERGENTVISION_MODIFICATION   1
 
 
 // includes
@@ -144,6 +144,11 @@ class ADEmergentVision : ADDriver {
     asynStatus getEVTAutoGain(bool* autoGainValue);
     asynStatus setEVTAutoGain(bool autoGainEnable);
 
+    asynStatus getEVTBufferMode(bool* bufferMode);
+    asynStatus setEVTBufferMode(bool bufferMode);
+
+    asynStatus getEVTBufferNum(unsigned int* bufferNum);
+    asynStatus setEVTBufferNum(unsigned int bufferNum);
 
     asynStatus getEVTExposureMax(unsigned int* maxExposure);
     asynStatus getEVTExposureMin(unsigned int* minExposure);
