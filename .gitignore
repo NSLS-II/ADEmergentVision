@@ -14,8 +14,8 @@ db/
 dbd/
 envPaths
 include
-O.Common/
-O.linux-x86_64/
+O.*/
 capture_test
 .vscode/
 auto_settings.sav*
+evtSupport/*.h
