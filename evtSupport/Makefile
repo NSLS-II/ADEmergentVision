@@ -4,7 +4,7 @@ include $(TOP)/configure/CONFIG
 #  ADD MACRO DEFINITIONS AFTER THIS LINE
 #=============================
 
-SRC_DIRS = ../include
+#SRC_DIRS = ../include
 
 INC += cemergentexception.h
 INC += EmergentAVIFile.h
