@@ -131,8 +131,8 @@ void ADEmergentVision::printConnectedDeviceInfo(){
 asynStatus ADEmergentVision::connectToDeviceEVT(){
     const char* functionName = "connectToDeviceEVT";
     unsigned int count, numCameras;
-    numCameras = MAX_CAMERAS;
-    struct GigEVisionDeviceInfo deviceList[numCameras];
+    numCameras = 10;
+    struct GigEVisionDeviceInfo deviceList[10];
     this->evt_status = EVT_ListDevices(deviceList, &numCameras, &count);
     if(this->evt_status != EVT_SUCCESS){
         reportEVTError(this->evt_status, functionName);
@@ -522,6 +522,7 @@ asynStatus ADEmergentVision::getFrameFormatND(CEmergentFrame* frame, NDDataType_
 asynStatus ADEmergentVision::evtFrame2NDArray(CEmergentFrame* frame, NDArray** pArray){
     const char* functionName = "evtFrame2NDArray";
     asynStatus status = asynSuccess;
+    size_t dims[3];
     int ndims;
     NDDataType_t dataType;
     NDColorMode_t colorMode;
@@ -539,7 +540,6 @@ asynStatus ADEmergentVision::evtFrame2NDArray(CEmergentFrame* frame, NDArray** p
         if(colorMode == NDColorModeMono) ndims = 2;
         else ndims = 3;
 
-        size_t dims[ndims];
         if(ndims == 2){
             dims[0] = xsize;
             dims[1] = ysize;
