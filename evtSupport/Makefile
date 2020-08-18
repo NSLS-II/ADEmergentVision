@@ -42,6 +42,22 @@ LIB_INSTALLS_Linux += ../os/$(EPICS_HOST_ARCH)/libEmergentGigEVision.so
 LIB_INSTALLS_Linux += ../os/$(EPICS_HOST_ARCH)/libvma.so
 endif
 
+ifeq (windows-x64, $(findstring windows-x64, $(T_A)))
+LIB_INSTALLS_WIN32 += ../os/windows-x64/EmergentCamera.lib
+LIB_INSTALLS_WIN32 += ../os/windows-x64/EmergentCameraC.lib
+LIB_INSTALLS_WIN32 += ../os/windows-x64/EmergentGenICam.lib
+LIB_INSTALLS_WIN32 += ../os/windows-x64/EmergentGigEVision.lib
+BIN_INSTALLS_WIN32 += ../os/windows-x64/EmergentAik.dll
+BIN_INSTALLS_WIN32 += ../os/windows-x64/EmergentCamera.dll
+BIN_INSTALLS_WIN32 += ../os/windows-x64/EmergentCameraC.dll
+BIN_INSTALLS_WIN32 += ../os/windows-x64/EmergentGenICam.dll
+BIN_INSTALLS_WIN32 += ../os/windows-x64/EmergentGigEVision.dll
+BIN_INSTALLS_WIN32 += ../os/windows-x64/EmergentCameraDotNet.dll
+BIN_INSTALLS_WIN32 += ../os/windows-x64/evt_mva.dll
+BIN_INSTALLS_WIN32 += ../os/windows-x64/zlibwapi.dll
+BIN_INSTALLS_WIN32 += ../os/windows-x64/libtiff.dll
+endif
+
 #=============================
 
 include $(TOP)/configure/RULES

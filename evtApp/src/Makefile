@@ -11,12 +11,16 @@ USR_CPPFLAGS += -std=c++11
 
 #USR_INCLUDES += -I$(EMERGENT_HOME)/eSDK/include/
 
-LIBRARY_IOC = adEVT
+LIBRARY_IOC_WIN32 += emergent
+LIBRARY_IOC_Linux += emergent
+
 LIB_SRCS += ADEmergentVision.cpp
+
 #LIB_LIBS += EmergentCameraC
 LIB_LIBS += EmergentCamera
 LIB_LIBS += EmergentGenICam
 LIB_LIBS += EmergentGigEVision
+
 #LIB_LIBS += vma
 
 #SYS_PROD_LIBS += boost_system
