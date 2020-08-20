@@ -82,16 +82,114 @@ void ADEmergentVision::exitCallback(void* pPvt){
 
 
 /**
+ * Function that writes to ADStatus PV
+ *
+ * @params[in]: status -> message to write to ADStatus PV
+ */
+void ADEmergentVision::updateStatus(const char* status) {
+    if (strlen(status) >= 25) return;
+
+    char statusMessage[25];
+    epicsSnprintf(statusMessage, sizeof(statusMessage), "%s", status);
+    setStringParam(ADStatusMessage, statusMessage);
+    callParamCallbacks();
+}
+
+
+/**
  * Function that reports error encountered in vendor library from EVT
+ * It also prints the error status enum name to the status PV
  * 
  * @params[in]: status          -> error code
  * @params[in]: functionName    -> function in which error occured
  * @return: void
  */
 void ADEmergentVision::reportEVTError(EVT_ERROR status, const char* functionName){
-    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s EVT Error: %d\n", driverName, 
-        functionName, status);
+
+    string statusStr = "";
+
+    switch (status) {
+        case EVT_SUCCESS:
+            statusStr = "EVT_SUCCESS";
+            break;
+        case EVT_ENOENT:
+            statusStr = "EVT_ENOENT";
+            break;
+        case EVT_ERROR_SRCH:
+            statusStr = "EVT_ERROR_SRCH";
+            break;
+        case EVT_ERROR_INTR:
+            statusStr = "EVT_ERROR_INTR";
+            break;
+        case EVT_ERROR_IO:
+            statusStr = "EVT_ERROR_IO";
+            break;
+        case EVT_ERROR_ECHILD:
+            statusStr = "EVT_ERROR_ECHILD";
+            break;
+        case EVT_ERROR_AGAIN:
+            statusStr = "EVT_ERROR_AGAIN";
+            break;
+        case EVT_ERROR_NOMEM:
+            statusStr = "EVT_ERROR_NOMEM";
+            break;
+        case EVT_ERROR_ENODEV:
+            statusStr = "EVT_ERROR_ENODEV";
+            break;
+        case EVT_ERROR_INVAL:
+            statusStr = "EVT_ERROR_INVAL";
+            break;
+        case EVT_ERROR_NOBUFS:
+            statusStr = "EVT_ERROR_NOBUFS";
+            break;
+        case EVT_ERROR_NOT_SUPPORTED:
+            statusStr = "EVT_ERROR_NOT_SUPPORTED";
+            break;
+        case EVT_ERROR_DEVICE_CONNECTED_ALRD:
+            statusStr = "EVT_ERROR_DEVICE_CONNECTED_ALRD";
+            break;
+        case EVT_ERROR_DEVICE_NOT_CONNECTED:
+            statusStr = "EVT_ERROR_DEVICE_NOT_CONNECTED";
+            break;
+        case EVT_ERROR_DEVICE_LOST_CONNECTION:
+            statusStr = "EVT_ERROR_DEVICE_LOST_CONNECTION";
+            break;
+        case EVT_ERROR_GENICAM_ERROR:
+            statusStr = "EVT_ERROR_GENICAM_ERROR";
+            break;
+        case EVT_ERROR_GENICAM_NOT_MATCH:
+            statusStr = "EVT_ERROR_GENICAM_NOT_MATCH";
+            break;
+        case EVT_ERROR_GENICAM_OUT_OF_RANGE:
+            statusStr = "EVT_ERROR_GENICAM_OUT_OF_RANGE";
+            break;
+        case EVT_ERROR_SOCK:
+            statusStr = "EVT_ERROR_SOCK";
+            break;
+        case EVT_ERROR_GVCP_ACK:
+            statusStr = "EVT_ERROR_GVCP_ACK";
+            break;
+        case EVT_ERROR_GVSP_DATA_CORRUPT:
+            statusStr = "EVT_ERROR_GVSP_DATA_CORRUPT";
+            break;
+        case EVT_ERROR_NIC_LIB_INIT:
+            statusStr = "EVT_ERROR_NIC_LIB_INIT";
+            break;
+        case EVT_ERROR_OS_OBTAIN_ADAPTER:
+            statusStr = "EVT_ERROR_OS_OBTAIN_ADAPTER";
+            break;
+        case EVT_ERROR_SDK:
+            statusStr = "EVT_ERROR_SDK";
+            break;
+        default:
+            statusStr = "Unknown Error";
+            break;
+    }
+    updateStatus(statusStr.c_str());
+    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s EVT Error: %s, Error Code: %d\n", driverName, 
+        functionName, statusStr.c_str(), status);
 }
+
 
 
 /**
@@ -166,10 +264,16 @@ asynStatus ADEmergentVision::connectToDeviceEVT(){
             //Get resolution.
             EVT_CameraGetUInt32ParamMax(&camera, "Height", &height_max);
             EVT_CameraGetUInt32ParamMax(&camera, "Width" , &width_max);
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Resolution: %d by %d\n", driverName, functionName, width_max, height_max);
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Resolution: %d by %d\n", driverName, functionName, width_max, height_max);
 
+            // Read maximum possible sensor size
             setIntegerParam(ADMaxSizeX, width_max);
             setIntegerParam(ADMaxSizeY, height_max);
+
+            // Default target resolution to be the maximum
+            setIntegerParam(ADSizeX, width_max);
+            setIntegerParam(ADSizeY, height_max);
+
             this->connected = 1;
             collectCameraInformation();
             return asynSuccess;
@@ -612,82 +716,87 @@ void ADEmergentVision::evtCallback(){
             asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error finding evt frame format\n", driverName, functionName);
         }
         else{
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Arm detector\n", driverName, functionName);
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Arm detector\n", driverName, functionName);
+            EVT_ERROR alloc = EVT_SUCCESS;
             EVT_ERROR err = EVT_CameraExecuteCommand(this->pcamera, "AcquisitionStart");
-            if(err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraExecuteCommand");
+            if(err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraExecuteCommand - AcqusitionStart");
 
             frames[0].size_x = xsize;
             frames[0].size_y = ysize;
             frames[0].pixel_type = (PIXEL_FORMAT) evtPixelType;
 
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Arm detector\n", driverName, functionName);
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Arm detector\n", driverName, functionName);
             //printf("allocating frame buffer command\n");
-            if(err == EVT_SUCCESS) err = EVT_AllocateFrameBuffer(this->pcamera, &frames[0], EVT_FRAME_BUFFER_ZERO_COPY);
-            if(err != EVT_SUCCESS) reportEVTError(err, "EVT_AllocateFrameBuffer");
-            
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Queue camera frame\n", driverName, functionName);
-            if(err == EVT_SUCCESS) err = EVT_CameraQueueFrame(this->pcamera, &frames[0]);
-            if(err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraQueueFrame");
+            if(err == EVT_SUCCESS) alloc = EVT_AllocateFrameBuffer(this->pcamera, &frames[0], EVT_FRAME_BUFFER_ZERO_COPY);
+            if(alloc != EVT_SUCCESS) reportEVTError(alloc, "EVT_AllocateFrameBuffer");
+            else {
 
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Triggering w/ software\n", driverName, functionName);
-            if(err == EVT_SUCCESS) err = EVT_CameraExecuteCommand(this->pcamera, "TriggerSoftware");
-            if(err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraExecuteCommand");
+                asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Queue camera frame\n", driverName, functionName);
+                if (alloc == EVT_SUCCESS) err = EVT_CameraQueueFrame(this->pcamera, &frames[0]);
+                if (err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraQueueFrame");
 
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Grabbing frame\n", driverName, functionName);
-            if(err == EVT_SUCCESS) err = EVT_CameraGetFrame(this->pcamera, &frames[0], EVT_INFINITE);
-            if(err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraGetFrame");
+                asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Triggering w/ software\n", driverName, functionName);
+                if (err == EVT_SUCCESS) err = EVT_CameraExecuteCommand(this->pcamera, "TriggerSoftware");
+                if (err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraExecuteCommand - TriggerSoftware");
 
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Stopping Acquisition\n", driverName, functionName);
-            if(err == EVT_SUCCESS) err = EVT_CameraExecuteCommand(&camera, "AcquisitionStop");
-            if(err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraExecuteCommand");
+                asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Grabbing frame\n", driverName, functionName);
+                if (err == EVT_SUCCESS) err = EVT_CameraGetFrame(this->pcamera, &frames[0], EVT_INFINITE);
+                if (err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraGetFrame");
 
-            // Only process the frame if we successfully finished all of the above commands.
-            if(err == EVT_SUCCESS){
-                //printf("Converting to NDArray\n");
-                status = evtFrame2NDArray(frames, &pArray);
-                if(status == asynSuccess){
-                    //printf("Converted to NDArray\n");
-                    pArray->uniqueId = imageCounter;
-                    updateTimeStamp(&pArray->epicsTS);
-                    doCallbacksGenericPointer(pArray, NDArrayData, 0);
-                    pArray->getInfo(&arrayInfo);
-                    size_t total_size = arrayInfo.totalBytes;
-                    setIntegerParam(NDArraySize, (int)total_size);
-                    setIntegerParam(NDArraySizeX, arrayInfo.xSize);
-                    setIntegerParam(NDArraySizeY, arrayInfo.ySize);
+                asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Stopping Acquisition\n", driverName, functionName);
+                if (err == EVT_SUCCESS) err = EVT_CameraExecuteCommand(&camera, "AcquisitionStop");
+                if (err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraExecuteCommand - AcquisitonStop");
 
-                    pArray->release();
-                }
+                // Only process the frame if we successfully finished all of the above commands.
+                if (err == EVT_SUCCESS) {
+                    //printf("Converting to NDArray\n");
+                    status = evtFrame2NDArray(frames, &pArray);
+                    if (status == asynSuccess) {
+                        //printf("Converted to NDArray\n");
+                        pArray->uniqueId = imageCounter;
+                        updateTimeStamp(&pArray->epicsTS);
+                        doCallbacksGenericPointer(pArray, NDArrayData, 0);
+                        pArray->getInfo(&arrayInfo);
+                        size_t total_size = arrayInfo.totalBytes;
+                        setIntegerParam(NDArraySize, (int)total_size);
+                        setIntegerParam(NDArraySizeX, arrayInfo.xSize);
+                        setIntegerParam(NDArraySizeY, arrayInfo.ySize);
 
-                //printf("RELEASING FRAME BUFFER\n");
-                if(err == EVT_SUCCESS) err = EVT_ReleaseFrameBuffer(this->pcamera, &frames[0]);
-                if(err != EVT_SUCCESS) reportEVTError(err, "EVT_ReleaseFrameBuffer");
-                getIntegerParam(ADNumImagesCounter, &imageCounter);
-                imageCounter++;
-                setIntegerParam(ADNumImagesCounter, imageCounter);
+                        pArray->release();
+                    }
 
-                if(status == asynError){
-                    this->imageThreadOpen = 0;
-                    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error converting to NDArray\n", driverName, functionName);
-                    acquireStop();
-                    break;
-                }
-                if(imageMode == ADImageSingle){
-                    this->imageThreadOpen = 0;
-                    acquireStop();
-                    asynPrint(this->pasynUserSelf, ASYN_TRACEIO_DRIVER, "%s::%s Done acquiring\n", driverName, functionName);
-                }
-                else if(imageMode == ADImageMultiple){
-                    //printf("thinks it is multiple\n");
-                    int numImages;
-                    getIntegerParam(ADNumImages, &numImages);
+                    getIntegerParam(ADNumImagesCounter, &imageCounter);
+                    imageCounter++;
+                    setIntegerParam(ADNumImagesCounter, imageCounter);
 
-                    if(imageCounter == numImages){
+                    if (status == asynError) {
+                        this->imageThreadOpen = 0;
+                        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error converting to NDArray\n", driverName, functionName);
+                        acquireStop();
+                        break;
+                    }
+                    if (imageMode == ADImageSingle) {
                         this->imageThreadOpen = 0;
                         acquireStop();
-                        asynPrint(this->pasynUserSelf, ASYN_TRACEIO_DRIVER, "%s::%s Done\n", driverName, functionName);
+                        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Done acquiring\n", driverName, functionName);
+                    }
+                    else if (imageMode == ADImageMultiple) {
+                        //printf("thinks it is multiple\n");
+                        int numImages;
+                        getIntegerParam(ADNumImages, &numImages);
+
+                        if (imageCounter == numImages) {
+                            this->imageThreadOpen = 0;
+                            acquireStop();
+                            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Done\n", driverName, functionName);
+                        }
                     }
                 }
+
+                //If frame buffer allocation was successful, we need to deallocate the frame buffer no matter what.
+                //printf("RELEASING FRAME BUFFER\n");
+                err = EVT_ReleaseFrameBuffer(this->pcamera, &frames[0]);
+                if (err != EVT_SUCCESS) reportEVTError(err, "EVT_ReleaseFrameBuffer");
             }
         }
         //printf("done with first loop iteration\n");

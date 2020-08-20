@@ -103,6 +103,7 @@ class ADEmergentVision : ADDriver {
     // ----------------------------
 
     asynStatus getDeviceInformation();
+    void updateStatus(const char* status);
     static void exitCallback(void* pEVT);
     void report(FILE* fp, int details);
     void reportEVTError(EVT_ERROR status, const char* functionName);

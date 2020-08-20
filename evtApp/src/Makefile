@@ -7,7 +7,9 @@ ifeq (windows-x64, $(findstring windows-x64, $(T_A)))
 USR_CPPFLAGS += -D__X64
 endif
 
+ifeq (linux-x86_64, $(findstring linux-x86_64, $(T_A)))
 USR_CPPFLAGS += -std=c++11
+endif
 
 #USR_INCLUDES += -I$(EMERGENT_HOME)/eSDK/include/
 
