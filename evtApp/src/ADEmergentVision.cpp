@@ -716,7 +716,7 @@ void ADEmergentVision::evtCallback(){
             asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error finding evt frame format\n", driverName, functionName);
         }
         else{
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Arm detector\n", driverName, functionName);
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Arm detector\n", driverName, functionName);
             EVT_ERROR alloc = EVT_SUCCESS;
             EVT_ERROR err = EVT_CameraExecuteCommand(this->pcamera, "AcquisitionStart");
             if(err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraExecuteCommand - AcqusitionStart");
@@ -725,25 +725,25 @@ void ADEmergentVision::evtCallback(){
             frames[0].size_y = ysize;
             frames[0].pixel_type = (PIXEL_FORMAT) evtPixelType;
 
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Arm detector\n", driverName, functionName);
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Arm detector\n", driverName, functionName);
             //printf("allocating frame buffer command\n");
             if(err == EVT_SUCCESS) alloc = EVT_AllocateFrameBuffer(this->pcamera, &frames[0], EVT_FRAME_BUFFER_ZERO_COPY);
             if(alloc != EVT_SUCCESS) reportEVTError(alloc, "EVT_AllocateFrameBuffer");
             else {
 
-                asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Queue camera frame\n", driverName, functionName);
+                asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Queue camera frame\n", driverName, functionName);
                 if (alloc == EVT_SUCCESS) err = EVT_CameraQueueFrame(this->pcamera, &frames[0]);
                 if (err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraQueueFrame");
 
-                asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Triggering w/ software\n", driverName, functionName);
+                asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Triggering w/ software\n", driverName, functionName);
                 if (err == EVT_SUCCESS) err = EVT_CameraExecuteCommand(this->pcamera, "TriggerSoftware");
                 if (err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraExecuteCommand - TriggerSoftware");
 
-                asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Grabbing frame\n", driverName, functionName);
+                asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Grabbing frame\n", driverName, functionName);
                 if (err == EVT_SUCCESS) err = EVT_CameraGetFrame(this->pcamera, &frames[0], EVT_INFINITE);
                 if (err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraGetFrame");
 
-                asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Stopping Acquisition\n", driverName, functionName);
+                asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Stopping Acquisition\n", driverName, functionName);
                 if (err == EVT_SUCCESS) err = EVT_CameraExecuteCommand(&camera, "AcquisitionStop");
                 if (err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraExecuteCommand - AcquisitonStop");
 
@@ -778,7 +778,7 @@ void ADEmergentVision::evtCallback(){
                     if (imageMode == ADImageSingle) {
                         this->imageThreadOpen = 0;
                         acquireStop();
-                        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Done acquiring\n", driverName, functionName);
+                        asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Done acquiring\n", driverName, functionName);
                     }
                     else if (imageMode == ADImageMultiple) {
                         //printf("thinks it is multiple\n");
@@ -788,7 +788,7 @@ void ADEmergentVision::evtCallback(){
                         if (imageCounter == numImages) {
                             this->imageThreadOpen = 0;
                             acquireStop();
-                            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Done\n", driverName, functionName);
+                            asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Done\n", driverName, functionName);
                         }
                     }
                 }
