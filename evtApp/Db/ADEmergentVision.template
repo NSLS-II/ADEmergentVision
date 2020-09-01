@@ -8,14 +8,34 @@
 ##############################################
 # stores the Pixel Format for EVT camera
 ################################################
-record(ao, "$(P)$(R)EVTPixelFormat"){
+record(mbbo, "$(P)$(R)EVTPixelFormat"){
     field(PINI, "YES")
     field(DTYP, "asynInt32")
+    field(ZRST, "8 Bit")
+    field(ZRVL, "0")
+    field(ONST, "10 Bit")
+    field(ONVL, "1")
+    field(TWST, "12 Bit")
+    field(TWVL, "2")
+    field(THST, "10 Bit Packed")
+    field(THVL, "3")
+    field(FRST, "12 Bit Packed")
+    field(FRVL, "4")
     field(OUT, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_PIXEL_FORMAT")
 }
 
-record(ai, "$(P)$(R)EVTPixelFormat_RBV"){
+record(mbbi, "$(P)$(R)EVTPixelFormat_RBV"){
     field(DTYP, "asynInt32")
+    field(ZRST, "8 Bit")
+    field(ZRVL, "0")
+    field(ONST, "10 Bit")
+    field(ONVL, "1")
+    field(TWST, "12 Bit")
+    field(TWVL, "2")
+    field(THST, "10 Bit Packed")
+    field(THVL, "3")
+    field(FRST, "12 Bit Packed")
+    field(FRVL, "4")
     field(INP, "@asyn($(PORT),$(ADDR),$(TIMEOUT))EVT_PIXEL_FORMAT")
     field(SCAN, "I/O Intr")
 }
