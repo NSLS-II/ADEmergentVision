@@ -730,6 +730,7 @@ asynStatus ADEmergentVision::evtFrame2NDArray(CEmergentFrame* evtFrame, CEmergen
             EVT_FrameConvert(evtFrame, evtConvertFrame, convert, EVT_COLOR_CONVERT_NONE);
             targetFrame = evtConvertFrame;
         }
+        EVT_FrameSave(evtFrame, "/home/jwlodek/test.tif", EVT_FILETYPE_TIF, EVT_ALIGN_LEFT);
 
 
         (*pArray)->getInfo(&arrayInfo);
@@ -776,7 +777,6 @@ void ADEmergentVision::evtCallback(){
         int imageCounter;
         int xsize, ysize;
         unsigned int evtPixelType;
-        unsigned int evtConvertPixelType;
         int dataType;
         int colorMode;
         getIntegerParam(ADImageMode, &imageMode);
@@ -805,9 +805,9 @@ void ADEmergentVision::evtCallback(){
             asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Arm detector\n", driverName, functionName);
             evtFrameConvert.size_x = xsize;
             evtFrameConvert.size_y = ysize;
-            evtFrameConvert.pixel_type = (PIXEL_FORMAT)evtPixelType;
+            evtFrameConvert.pixel_type = (PIXEL_FORMAT) evtPixelType;
             evtFrameConvert.convertColor = EVT_COLOR_CONVERT_NONE;
-            evtFrameConvert.convertBitDepth = getConvertBitDepth((PIXEL_FORMAT)evtPixelType);
+            evtFrameConvert.convertBitDepth = getConvertBitDepth((PIXEL_FORMAT) evtPixelType);
 
             
             //printf("allocating frame buffer command\n");
@@ -1267,20 +1267,51 @@ asynStatus ADEmergentVision::writeInt32(asynUser* pasynUser, epicsInt32 value){
             if(value == ADImageSingle) setIntegerParam(ADNumImages, 1);
             else if(value == ADImageMultiple) setIntegerParam(ADNumImages, 100);
         }
+        else if(function == ADEVT_PixelFormat || function == NDColorMode){
+            int colorMode;
+            unsigned int evtPixelFormat;
+            getIntegerParam(NDColorMode, &colorMode);
+            status = getFrameFormatEVT(&evtPixelFormat, (NDColorMode_t) colorMode);
+            if(status == asynError){
+                ERR("Invalid pixel format selected!");
+            }
+            else{
+                string pixelFormatStr;
+                switch((PIXEL_FORMAT) evtPixelFormat){
+                    case GVSP_PIX_MONO8:
+                        pixelFormatStr = "Mono8";
+                        break;
+                    case GVSP_PIX_MONO10:
+                        pixelFormatStr = "Mono10";
+                        break;
+                    case GVSP_PIX_MONO12:
+                        pixelFormatStr = "Mono12";
+                        break;
+                }
+                EVT_ERROR err = EVT_CameraSetEnumParam(this->pcamera, "PixelFormat", pixelFormatStr.c_str());
+                if(err != EVT_SUCCESS){
+                    reportEVTError(err, functionName);
+                    status = asynError;
+                }
+                else ERR_ARGS("Set camera pixel format parameter: %s", pixelFormatStr.c_str())
+            }
+        }
         else if(function == ADEVT_Framerate) status = setEVTFramerate((unsigned int) value);
         else if(function == ADEVT_OffsetX) status = setEVTOffsetX((unsigned int) value);
         else if(function == ADEVT_OffsetY) status = setEVTOffsetY((unsigned int) value);
         else if(function == ADEVT_BufferNum) status = setEVTBufferNum((unsigned int) value);
-        else if (function == ADEVT_LUTEnable) status = setEVTLUTStatus(value > 0);
-        else if (function == ADEVT_AutoGain) status = setEVTAutoGain(value > 0);
-        else if (function == ADEVT_BufferMode) status = setEVTBufferMode(value > 0);
+        else if(function == ADEVT_LUTEnable) status = setEVTLUTStatus(value > 0);
+        else if(function == ADEVT_AutoGain) status = setEVTAutoGain(value > 0);
+        else if(function == ADEVT_BufferMode) status = setEVTBufferMode(value > 0);
         else if(function < ADEVT_FIRST_PARAM){
             status = ADDriver::writeInt32(pasynUser, value);
         }
     }
     callParamCallbacks();
-    if(status == asynError) asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s ERROR status=%d, function=%d, value=%d\n", driverName, functionName, status, function, value);
-    else asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s function=%d value=%d\n", driverName, functionName, function, value);
+    if(status == asynError){
+        ERR_ARGS("ERROR status=%d, function=%d, value=%d\n", status, function, value);
+    }
+    else LOG_ARGS("function=%d value=%d\n", function, value);
     return status;
 }
 
@@ -1315,8 +1346,10 @@ asynStatus ADEmergentVision::writeFloat64(asynUser* pasynUser, epicsFloat64 valu
         status = ADDriver::writeFloat64(pasynUser, value);
     }
     callParamCallbacks();
-    if(status == asynError) asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s ERROR status=%d, function=%d, value=%lf\n", driverName, functionName, status, function, value);
-    else asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s function=%d value=%lf\n", driverName, functionName, function, value);
+    if(status == asynError){
+        ERR_ARGS("ERROR status=%d, function=%d, value=%lf\n", status, function, value);
+    }
+    else LOG_ARGS("function=%d value=%lf\n", function, value);
     return status;
 }
 
