@@ -133,9 +133,6 @@ void ADEmergentVision::reportEVTError(EVT_ERROR status, const char* functionName
         case EVT_ERROR_NOMEM:
             statusStr = "EVT_ERROR_NOMEM";
             break;
-        case EVT_ERROR_ENODEV:
-            statusStr = "EVT_ERROR_ENODEV";
-            break;
         case EVT_ERROR_INVAL:
             statusStr = "EVT_ERROR_INVAL";
             break;
@@ -171,9 +168,6 @@ void ADEmergentVision::reportEVTError(EVT_ERROR status, const char* functionName
             break;
         case EVT_ERROR_GVSP_DATA_CORRUPT:
             statusStr = "EVT_ERROR_GVSP_DATA_CORRUPT";
-            break;
-        case EVT_ERROR_NIC_LIB_INIT:
-            statusStr = "EVT_ERROR_NIC_LIB_INIT";
             break;
         case EVT_ERROR_OS_OBTAIN_ADAPTER:
             statusStr = "EVT_ERROR_OS_OBTAIN_ADAPTER";

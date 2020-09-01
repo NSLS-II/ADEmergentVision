@@ -4,7 +4,9 @@ include $(TOP)/configure/CONFIG
 #  ADD MACRO DEFINITIONS AFTER THIS LINE
 #=============================
 
-#SRC_DIRS = ../include
+ifeq (linux-x86_64, $(findstring linux-x86_64, $(T_A)))
+SRC_DIRS = ../include
+endif
 
 INC += cemergentexception.h
 INC += EmergentAVIFile.h
