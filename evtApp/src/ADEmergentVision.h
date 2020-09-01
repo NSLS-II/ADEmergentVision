@@ -166,7 +166,7 @@ class ADEmergentVision : ADDriver {
     asynStatus getFrameFormatEVT(unsigned int* evtPixelType, NDColorMode_t colorMode);
     asynStatus getConvertFormatEVT(unsigned int* evtPixelType, NDDataType_t dataType, NDColorMode_t colorMode);
     asynStatus getFrameFormatND(CEmergentFrame* frame, NDDataType_t* dataType, NDColorMode_t* colorMode);
-    asynStatus evtFrame2NDArray(CEmergentFrame* frame, NDArray** pArray);
+    asynStatus evtFrame2NDArray(CEmergentFrame* frame, CEmergentFrame* convertFrame, NDArray** pArray);
     unsigned int getConvertBitDepth(PIXEL_FORMAT evtPixelFormat);
     
     void evtCallback();
