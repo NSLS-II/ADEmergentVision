@@ -4,6 +4,28 @@ This driver is in development and currently only has beta releases.
 
 <!--RELEASE START-->
 
+### R0-3
+
+This release adds higher bit depth support as well as
+improved performance
+
+* Key Features Implemented
+    * High bit depth (10/12 bit) supported
+    * Improve performances - honor driver framerate setting
+    * Improved edge case error handling
+
+### R0-2
+
+This release adds support for the driver on windows
+
+* Key Features Implemented
+    * Windows support
+    * Improved driver handling of invalid camera parameter settings
+* Known Issues
+    * Logging inconsistencies
+    * Performance downgrade over vendor software
+    * Limited to 8 bit
+
 ### R0-1
 
 Initial beta release of ADEmergentVision
