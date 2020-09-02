@@ -1106,7 +1106,7 @@ asynStatus ADEmergentVision::writeInt32(asynUser* pasynUser, epicsInt32 value){
 
     status = setIntegerParam(function, value);
     if(status != asynSuccess){
-        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error writing to PV\n", driverName, functionName);
+        ERR("Error writing to PV");
         return status;
     }
     else{
@@ -1229,7 +1229,7 @@ asynStatus ADEmergentVision::writeFloat64(asynUser* pasynUser, epicsFloat64 valu
  */
 void ADEmergentVision::report(FILE* fp, int details){
     const char* functionName = "report";
-    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s reporting to external log file\n", driverName, functionName);
+    LOG("Reporting to external log file");
     fprintf(fp, "--------------------------------------\n");
     fprintf(fp, "Connected to EVT device\n");
     fprintf(fp, "--------------------------------------\n");
@@ -1276,7 +1276,7 @@ ADEmergentVision::ADEmergentVision(const char* portName, const char* serialNumbe
     setStringParam(NDDriverVersion, versionString);
 
     if(strlen(serialNumber) == 0){
-        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error: invalid serial number passed\n", driverName, functionName);
+        ERR("Error: invalid serial number passed");
         status = asynError;
     }
     else{
@@ -1296,7 +1296,7 @@ ADEmergentVision::ADEmergentVision(const char* portName, const char* serialNumbe
     createParam(ADEVT_AutoGainString,           asynParamInt32,     &ADEVT_AutoGain);
 
     if(status == asynError)
-        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Failed to connect to device\n", driverName, functionName);
+        ERR("Failed to connect to device");
 
     epicsAtExit(exitCallback, (void*) this);
 }
@@ -1304,12 +1304,11 @@ ADEmergentVision::ADEmergentVision(const char* portName, const char* serialNumbe
 
 /* ADEmergentVision Destructor */
 ADEmergentVision::~ADEmergentVision(){
-    const char* functionName = "~ADEmergentVision";
     printf("Uninitializing Emergent Vision Detector API.\n");
     this->lock();
     disconnectFromDeviceEVT();
     this->unlock();
-    printf("%s::%s ADEmergentVision Driver Exiting...\n", driverName, functionName);
+    printf("ADEmergentVision Driver Exiting...\n");
 }
 
 
