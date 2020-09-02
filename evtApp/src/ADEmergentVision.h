@@ -18,7 +18,9 @@
 // version numbers
 #define ADEMERGENTVISION_VERSION        0
 #define ADEMERGENTVISION_REVISION       0
-#define ADEMERGENTVISION_MODIFICATION   2
+#define ADEMERGENTVISION_MODIFICATION   3
+
+#define SUPPORTED_MODE_BUFFER_SIZE 1000
 
 
 // includes
@@ -98,6 +100,10 @@ class ADEmergentVision : ADDriver {
     const char* serialNumber;
     int connected = 0;
 
+    //EVT Camera supported modes
+    unsigned long supportedModeSizeReturn = 0;
+    char supportedModes[SUPPORTED_MODE_BUFFER_SIZE];
+
     // ----------------------------
     // EVT Functions for logging/reporting
     // ----------------------------
@@ -121,51 +127,26 @@ class ADEmergentVision : ADDriver {
     // EVT Camera Functions
     // -----------------------------
 
-    asynStatus getEVTFramerate(unsigned int* framerate);
-    asynStatus setEVTFramerate(unsigned int framerate);
-        
-    asynStatus getEVTOffsetX(unsigned int* offsetX);
-    asynStatus setEVTOffsetX(unsigned int offsetX);
-    
-    asynStatus getEVTOffsetY(unsigned int* offsetY);
-    asynStatus setEVTOffsetY(unsigned int offsetY);
+    bool isEVTInt32ParamValid(unsigned int newVal, const char* param);
+    asynStatus getEVTInt32Param(unsigned int* retVal, const char* param);
+    asynStatus setEVTInt32Param(unsigned int newVal, const char* param);
 
-    asynStatus getEVTPacketSize(unsigned int* packetSize);
-    asynStatus setEVTPacketSize(unsigned int packetSize);
-
-    asynStatus getEVTGain(unsigned int* gainValue);
-    asynStatus setEVTGain(unsigned int gainValue);
-
-    asynStatus getEVTOffset(unsigned int* gainValue);
-    asynStatus setEVTOffset(unsigned int gainValue);
-    
-    asynStatus getEVTLUTStatus(bool* lutValue);
-    asynStatus setEVTLUTStatus(bool lutEnable);
-    
-    asynStatus getEVTAutoGain(bool* autoGainValue);
-    asynStatus setEVTAutoGain(bool autoGainEnable);
-
-    asynStatus getEVTBufferMode(bool* bufferMode);
-    asynStatus setEVTBufferMode(bool bufferMode);
-
-    asynStatus getEVTBufferNum(unsigned int* bufferNum);
-    asynStatus setEVTBufferNum(unsigned int bufferNum);
-
-    asynStatus getEVTExposureMax(unsigned int* maxExposure);
-    asynStatus getEVTExposureMin(unsigned int* minExposure);
-    asynStatus getEVTExposureInc(unsigned int* incExposure);
-
-    asynStatus setEVTExposure(unsigned int exposure);
+    asynStatus getEVTBoolParam(bool* retVal, const char* param);
+    asynStatus setEVTBoolParam(bool newVal, const char* param);
 
 
     // -----------------------------
     // EVT Image acquisition functions
     // -----------------------------
 
-    asynStatus setCameraValues();
-    asynStatus getFrameFormatEVT(unsigned int* evtPixelType, NDDataType_t dataType, NDColorMode_t colorMode);
+    asynStatus setDefaultCameraValues();
+    string getSupportedFormatStr(PIXEL_FORMAT evtPixelFormat);
+    bool isFrameFormatValid(const char* formatStr);
+    asynStatus getFrameFormatEVT(unsigned int* evtPixelType);
+    asynStatus getConvertFormatEVT(unsigned int* evtPixelType, NDDataType_t dataType, NDColorMode_t colorMode);
     asynStatus getFrameFormatND(CEmergentFrame* frame, NDDataType_t* dataType, NDColorMode_t* colorMode);
-    asynStatus evtFrame2NDArray(CEmergentFrame* frame, NDArray** pArray);
+    asynStatus evtFrame2NDArray(CEmergentFrame* frame, CEmergentFrame* convertFrame, NDArray** pArray);
+    unsigned int getConvertBitDepth(PIXEL_FORMAT evtPixelFormat);
     
     void evtCallback();
     static void* evtCallbackWrapper(void* pPtr);

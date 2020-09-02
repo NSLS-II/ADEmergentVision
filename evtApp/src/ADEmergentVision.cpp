@@ -28,6 +28,21 @@
 #include <epicsExport.h>
 
 
+// Error message formatters
+#define ERR(msg) asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s: %s\n", \
+    driverName, functionName, msg)
+
+#define ERR_ARGS(fmt,...) asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, \
+    "%s::%s: " fmt "\n", driverName, functionName, __VA_ARGS__);
+
+// Flow message formatters
+#define LOG(msg) asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s: %s\n", \
+    driverName, functionName, msg)
+
+#define LOG_ARGS(fmt,...) asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, \
+    "%s::%s: " fmt "\n", driverName, functionName, __VA_ARGS__);
+
+
 // Area Detector include
 #include "ADEmergentVision.h"
 
@@ -180,8 +195,7 @@ void ADEmergentVision::reportEVTError(EVT_ERROR status, const char* functionName
             break;
     }
     updateStatus(statusStr.c_str());
-    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s EVT Error: %s, Error Code: %d\n", driverName, 
-        functionName, statusStr.c_str(), status);
+    ERR_ARGS("EVT Error: %s, Error Code: %d\n", statusStr.c_str(), status);
 }
 
 
@@ -231,7 +245,7 @@ asynStatus ADEmergentVision::connectToDeviceEVT(){
         return asynError;
     }
     else if(count == 0){
-        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s No Cameras detected on the network\n", driverName, functionName);
+        ERR("No Cameras detected on the network\n");
         return asynError;
     }
     else{
@@ -244,7 +258,7 @@ asynStatus ADEmergentVision::connectToDeviceEVT(){
             }
         }
         if(pdeviceInfo == NULL){
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Could not find camera with specified serial number\n", driverName, functionName);
+            ERR("Could not find camera with specified serial number\n");
             return asynError;
         }
         else{
@@ -258,9 +272,9 @@ asynStatus ADEmergentVision::connectToDeviceEVT(){
             //Get resolution.
             EVT_CameraGetUInt32ParamMax(&camera, "Height", &height_max);
             EVT_CameraGetUInt32ParamMax(&camera, "Width" , &width_max);
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Resolution: %d by %d\n", driverName, functionName, width_max, height_max);
+            printf("Max Resolution: %d by %d\n", width_max, height_max);
 
-            // Read maximum possible sensor size
+            // Update maximum possible sensor size
             setIntegerParam(ADMaxSizeX, width_max);
             setIntegerParam(ADMaxSizeY, height_max);
 
@@ -270,6 +284,7 @@ asynStatus ADEmergentVision::connectToDeviceEVT(){
 
             this->connected = 1;
             collectCameraInformation();
+            setDefaultCameraValues();
             return asynSuccess;
         }
     }
@@ -301,16 +316,16 @@ asynStatus ADEmergentVision::disconnectFromDeviceEVT(){
     getIntegerParam(ADAcquire, &acquiring);
     if(acquiring) acquireStop();
     if(this->pdeviceInfo == NULL || this->pcamera == NULL){
-        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Never connected to device\n", driverName, functionName);
+        ERR("Never connected to device");
         return asynError;
     }
     else{
         free(this->pdeviceInfo);
-        asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Closing camera connection\n", driverName, functionName);
+        LOG("Closing camera connection");
 
         this->evt_status = EVT_CameraClose(this->pcamera);
         if(this->evt_status != EVT_SUCCESS){
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s ERROR - Could not close camera correctly\n", driverName, functionName);
+            ERR("ERROR - Could not close camera correctly");
             reportEVTError(this->evt_status, functionName);
             return asynError;
         }
@@ -340,11 +355,13 @@ asynStatus ADEmergentVision::disconnect(asynUser* pasynUser){
 asynStatus ADEmergentVision::collectCameraInformation(){
     const char* functionName = "collectCameraInformation";
     if (connected == 0) return asynError;
-    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Collecting camera information\n", driverName, functionName);
+    LOG("Collecting camera information");
     setStringParam(ADManufacturer, this->pdeviceInfo->manufacturerName);
     setStringParam(ADSerialNumber, this->pdeviceInfo->serialNumber);
     setStringParam(ADFirmwareVersion,this->pdeviceInfo->deviceVersion);
     setStringParam(ADModel, this->pdeviceInfo->modelName);
+    EVT_CameraGetEnumParamRange(this->pcamera, "PixelFormat", this->supportedModes, SUPPORTED_MODE_BUFFER_SIZE, &(this->supportedModeSizeReturn));
+    printf("Supported formats: %s\n", this->supportedModes);
     return asynSuccess;
 }
 
@@ -355,18 +372,18 @@ asynStatus ADEmergentVision::collectCameraInformation(){
 
 
 /**
- * Function that will set all camera parameters from their PV Values
+ * Method that initalizes various camera parameters to their default values
  * 
  * TODO
  * 
- * return: void
+ * @return: status -> error if not connected to camera, success otherwise
  */
-asynStatus ADEmergentVision::setCameraValues(){
-    if (connected == 0) return asynError;
-    EVT_CameraSetEnumParam(this->pcamera,   "AcquisitionMode",        "MultiFrame");
-    EVT_CameraSetUInt32Param(this->pcamera, "AcquisitionFrameCount",  NUM_FRAMES);
-    EVT_CameraSetEnumParam(this->pcamera,   "TriggerSelector",        "FrameStart");
-    EVT_CameraSetEnumParam(this->pcamera,   "TriggerMode",            "On");
+asynStatus ADEmergentVision::setDefaultCameraValues(){
+    if (this->connected == 0) return asynError;
+    EVT_CameraSetEnumParam(this->pcamera,   "AcquisitionMode",        "Continuous");
+    EVT_CameraSetUInt32Param(this->pcamera, "AcquisitionFrameCount",  1);
+    EVT_CameraSetEnumParam(this->pcamera,   "TriggerSelector",        "AcquisitionStart");
+    EVT_CameraSetEnumParam(this->pcamera,   "TriggerMode",            "Off");
     EVT_CameraSetEnumParam(this->pcamera,   "TriggerSource",          "Software");
     EVT_CameraSetEnumParam(this->pcamera,   "BufferMode",             "Off");
     EVT_CameraSetUInt32Param(this->pcamera, "BufferNum",              0);
@@ -386,11 +403,11 @@ asynStatus ADEmergentVision::startImageAcquisitionThread(){
         this->imageCollectionThreadActive = 1;
         thread imageThread(evtCallbackWrapper, this);
         imageThread.detach();
-        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Image Thread Created\n", driverName, functionName);
+        printf("Image acquistion thread started.\n");
         status = asynSuccess;
     }
     else{
-        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Acquisition thread already active\n", driverName, functionName);
+        ERR("Acquisition thread already active\n");
         status = asynError;
     }
     return status;
@@ -406,14 +423,80 @@ asynStatus ADEmergentVision::stopImageAcquisitionThread(){
     const char* functionName = "stopImageAcquisitionThread";
     asynStatus status;
     if(this->imageCollectionThreadActive == 0){
-        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Image thread not active\n", driverName, functionName);
+        ERR("Image thread not active\n");
         status = asynError;
     }
     else{
         this->imageCollectionThreadActive = 0;
-        asynPrint(this->pasynUserSelf, ASYN_TRACEIO_DRIVER, "%s::%s Stopping image acquisition thread\n", driverName, functionName);
+        printf("Stopping image acquisition thread.\n");
     }
     return status;
+}
+
+
+string ADEmergentVision::getSupportedFormatStr(PIXEL_FORMAT evtPixelFormat){
+    const char* functionName = "getSupportedFormatStr";
+    string supportedFormatStr;
+    switch(evtPixelFormat){
+        case GVSP_PIX_MONO8:
+            supportedFormatStr = "Mono8";
+            break;
+        case GVSP_PIX_MONO10:
+            supportedFormatStr = "Mono10";
+            break;
+        case GVSP_PIX_MONO12:
+            supportedFormatStr = "Mono12";
+            break;
+        case GVSP_PIX_MONO10_PACKED:
+            supportedFormatStr = "Mono10Packed";
+            break;
+        case GVSP_PIX_MONO12_PACKED:
+            supportedFormatStr = "Mono12Packed";
+            break;
+        case GVSP_PIX_RGB8:
+            supportedFormatStr = "RGB8Packed";
+            break;
+        case GVSP_PIX_RGB10:
+            supportedFormatStr = "RGB10Packed";
+            break;
+        case GVSP_PIX_RGB12:
+            supportedFormatStr = "RGB12Packed";
+            break;
+        case GVSP_PIX_BAYRG8:
+            supportedFormatStr = "BayerRG8";
+            break;
+        case GVSP_PIX_BAYRG10:
+            supportedFormatStr = "BayerRG10";
+            break;
+        case GVSP_PIX_BAYRG12:
+            supportedFormatStr = "BayerRG12";
+            break;
+        case GVSP_PIX_BAYBG10_PACKED:
+            supportedFormatStr = "BayerRG10Packed";
+            break;
+        case GVSP_PIX_BAYRG12_PACKED:
+            supportedFormatStr = "BayerRG12Packed";
+            break;
+        default:
+            supportedFormatStr = "";
+            break;
+    }
+    return supportedFormatStr;
+}
+
+
+bool ADEmergentVision::isFrameFormatValid(const char* formatStr){
+    const char* functionName = "isFrameFormatValid";
+    char* nextToken;
+    bool valid = false;
+    char temp[SUPPORTED_MODE_BUFFER_SIZE];
+    memcpy(temp, this->supportedModes, SUPPORTED_MODE_BUFFER_SIZE);
+    char* enumMember = strtok_s(temp, ",", &next_token);
+    while(enumMember != NULL){
+        if(strcmp(formatStr, enumMember) == 0) valid = true;
+        enumMember = strtok_s(NULL, ",", &next_token);
+    }
+    return valid;
 }
 
 
@@ -428,14 +511,22 @@ asynStatus ADEmergentVision::acquireStart(){
     setIntegerParam(ADEVT_Framerate, 30);
     const char* functionName = "acquireStart";
     if (connected == 0) return asynError;
-    asynStatus status;
+    asynStatus status = asynSuccess;
     if(this->pcamera == NULL){
-        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error: No camera connected\n", driverName, functionName);
+        ERR("Error: No camera connected");
         status = asynError;
     }
     else{
-        status = setCameraValues();
-        if(status != asynSuccess) asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error: setting camera values\n", driverName, functionName);
+        unsigned int evtPixelFormat;
+        getFrameFormatEVT(&evtPixelFormat);
+
+        string pixelMode = getSupportedFormatStr((PIXEL_FORMAT) evtPixelFormat);
+        printf("Starting acquisition with pixel mode %s\n", pixelMode.c_str());
+        if(!isFrameFormatValid(pixelMode.c_str())) status = asynError;
+        //else status = setCameraValues();
+        if(status != asynSuccess){
+            ERR_ARGS("Invalid camera settings! Supported formats: %s", this->supportedModes);
+        }
         else{
             this->evt_status = EVT_CameraOpenStream(pcamera);
             startImageAcquisitionThread();
@@ -447,9 +538,17 @@ asynStatus ADEmergentVision::acquireStart(){
                 status = asynError;
             }
             else{
-                setIntegerParam(ADStatus, ADStatusAcquire);
-                asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Image acquistion start\n", driverName, functionName);
-                callParamCallbacks();
+                this->evt_status = EVT_CameraExecuteCommand(this->pcamera, "AcquisitionStart");
+                if(this->evt_status != EVT_SUCCESS){
+                    stopImageAcquisitionThread();
+                    ERR("Failed to start acquistion.");
+                    status = asynError;
+                }
+                else{
+                    setIntegerParam(ADStatus, ADStatusAcquire);
+                    //asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Image acquistion start\n", driverName, functionName);
+                    callParamCallbacks();
+                }
             }
 
         }
@@ -466,29 +565,33 @@ asynStatus ADEmergentVision::acquireStart(){
  */ 
 asynStatus ADEmergentVision::acquireStop(){
     const char* functionName = "acquireStop";
-    if (connected == 0) return asynError;
-    asynStatus status;
+    if (this->connected == 0) return asynError;
+    asynStatus status = asynSuccess;
     if(this->pcamera == NULL){
-        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error: No camera connected\n", driverName, functionName);
+        ERR("Error: No camera connected");
         status = asynError;
     }
     else{
-        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Stopping image acquisition thread\n", driverName, functionName);
         stopImageAcquisitionThread();
         // Make sure camera acquisition is completed before we close the stream.
         while(this->imageThreadOpen == 1)
             epicsThreadSleep(0.1);
-        this->evt_status = EVT_CameraCloseStream(this->pcamera);
+        this->evt_status = EVT_CameraExecuteCommand(&camera, "AcquisitionStop");
         if(this->evt_status != EVT_SUCCESS){
             reportEVTError(this->evt_status, functionName);
             status = asynError;
         }
-        else status = asynSuccess;
+        else{
+            this->evt_status = EVT_CameraCloseStream(this->pcamera);
+            if(this->evt_status != EVT_SUCCESS){
+                reportEVTError(this->evt_status, functionName);
+                status = asynError;
+            }
+        }
     }
     setIntegerParam(ADStatus, ADStatusIdle);
     setIntegerParam(ADAcquire, 0);
     callParamCallbacks();
-    asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Stopped Image Acquisition\n", driverName, functionName);
     return status;
 }
 
@@ -497,62 +600,86 @@ asynStatus ADEmergentVision::acquireStop(){
  * Function that takes selected NDDataType and NDColorMode, and converts into an EVT pixel type
  * This is then used by the camera when starting image acquisiton
  * 
- * @params[out]: evtPixelType   -> pixel type of EVT image desired
- * @params[in]:  dataType       -> NDDataType selected in CSS
- * @params[in]:  colorMode      -> NDColorMode selected in CSS
+ * @params[out]: evtPixelType   -> Pixel type enum value to be used given the current configuration.
  * @return: status              -> error if combination of dtype and color mode invalid
  */
-asynStatus ADEmergentVision::getFrameFormatEVT(unsigned int* evtPixelType, NDDataType_t dataType, NDColorMode_t colorMode){
+asynStatus ADEmergentVision::getFrameFormatEVT(unsigned int* evtPixelType){
     const char* functionName = "getFrameFormatEVT";
     asynStatus status = asynSuccess;
+    int pixelFormat;
+    int colorMode;
+    getIntegerParam(ADEVT_PixelFormat, &pixelFormat);
+    getIntegerParam(NDColorMode, &colorMode);
 
-    switch(colorMode){
+    switch((NDColorMode_t) colorMode){
         case NDColorModeMono:
-            switch(dataType){
-                case NDUInt8:
+            switch(pixelFormat){
+                case 0:
                     *evtPixelType = GVSP_PIX_MONO8;
                     break;
-                case NDUInt16:
-                    *evtPixelType = UNPACK_PIX_MONO16;
+                case 1:
+                    *evtPixelType = GVSP_PIX_MONO10;
+                    break;
+                case 2:
+                    *evtPixelType = GVSP_PIX_MONO12;
+                    break;
+                case 3:
+                    *evtPixelType = GVSP_PIX_MONO10_PACKED;
+                    break;
+                case 4:
+                    *evtPixelType = GVSP_PIX_MONO12_PACKED;
                     break;
                 default:
-                    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Unsupported data type for this color mode\n", driverName, functionName);
+                    ERR("Unsupported data type for this color mode");
                     return asynError;
             }
             break;
         case NDColorModeRGB1:
-            switch(dataType){
-                case NDUInt8:
+            switch(pixelFormat){
+                case 0:
                     *evtPixelType = GVSP_PIX_RGB8;
                     break;
-                case NDUInt16:
-                    *evtPixelType = UNPACK_PIX_RGB16;
+                case 1:
+                    *evtPixelType = GVSP_PIX_RGB10;
+                    break;
+                case 2:
+                    *evtPixelType = GVSP_PIX_RGB12;
                     break;
                 default:
-                    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Unsupported data type for this color mode\n", driverName, functionName);
+                    ERR("Unsupported data type for this color mode\n");
                     return asynError;
             }
             break;
         case NDColorModeBayer:
-            switch(dataType){
-                case NDUInt8:
-                    *evtPixelType = CONVERT_PIX_BAYRG8;
+            switch(pixelFormat){
+                case 0:
+                    *evtPixelType = GVSP_PIX_BAYRG8;
                     break;
-                case NDUInt16:
-                    *evtPixelType = CONVERT_PIX_BAYRG16;
+                case 1:
+                    *evtPixelType = GVSP_PIX_BAYRG10;
+                    break;
+                case 2:
+                    *evtPixelType = GVSP_PIX_BAYRG12;
+                    break;
+                case 3:
+                    *evtPixelType = GVSP_PIX_BAYRG10_PACKED;
+                    break;
+                case 4:
+                    *evtPixelType = GVSP_PIX_BAYRG12_PACKED;
                     break;
                 default:
-                    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Unsupported data type for this color mode\n", driverName, functionName);
+                    ERR("Unsupported data type for this color mode\n");
                     return asynError;
             }
             break;
         default:
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error Not supported color format\n", driverName, functionName);
+            ERR("Not supported color format\n");
             status = asynError;
             break;
     }
     return status;
 }
+
 
 
 /**
@@ -578,31 +705,68 @@ asynStatus ADEmergentVision::getFrameFormatND(CEmergentFrame* frame, NDDataType_
             *dataType = NDUInt8;
             *colorMode = NDColorModeRGB1;
             break;
-        case UNPACK_PIX_MONO16:
+        case GVSP_PIX_MONO10:
+        case GVSP_PIX_MONO12:
+        case GVSP_PIX_MONO10_PACKED:
+        case GVSP_PIX_MONO12_PACKED:
             *dataType = NDUInt16;
             *colorMode = NDColorModeMono;
             break;
-        case UNPACK_PIX_RGB16:
+        case GVSP_PIX_RGB10:
+        case GVSP_PIX_RGB12:
             *dataType = NDUInt16;
             *colorMode = NDColorModeRGB1;
             break;
-        case CONVERT_PIX_BAYRG8:
+        case GVSP_PIX_BAYRG8:
             *dataType = NDUInt8;
             *colorMode = NDColorModeBayer;
             break;
-        case CONVERT_PIX_BAYRG16:
+        case GVSP_PIX_BAYRG10:
+        case GVSP_PIX_BAYRG10_PACKED:
+        case GVSP_PIX_BAYRG12:
+        case GVSP_PIX_BAYRG12_PACKED:
             *dataType = NDUInt16;
             *colorMode = NDColorModeBayer;
             break;
         default:
             //not a supported depth
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Unsupported Frame format\n", driverName, functionName);
+            ERR("Unsupported Frame format");
             *dataType = NDUInt8;
+            *colorMode = NDColorModeMono;
             break;
     }
-    //currently only mono images supported
-    *colorMode = NDColorModeMono;
     return status;
+}
+
+
+/**
+ * Method that identifies the bit depth conversion required for a given image.
+ * 
+ * 
+ */
+unsigned int ADEmergentVision::getConvertBitDepth(PIXEL_FORMAT evtPixelFormat) {
+    unsigned int convert = EVT_CONVERT_NONE;
+    int dataType;
+
+    getIntegerParam(NDDataType, &dataType);
+
+    // convert 8 bit types to 16 bit if such configuration is detected
+    if (evtPixelFormat == GVSP_PIX_MONO8 || evtPixelFormat == GVSP_PIX_RGB8 || evtPixelFormat == GVSP_PIX_BAYRG8) {
+        if ((NDDataType_t)dataType == NDUInt16 || (NDDataType_t)dataType == NDInt16)
+            convert = EVT_CONVERT_16BIT;
+    }
+    else {
+        // downconvert to 8 bit otherwise
+        if ((NDDataType_t)dataType == NDUInt8 || (NDDataType_t)dataType == NDInt8)
+            convert = EVT_CONVERT_8BIT;
+        // If the mode is packed we must convert it to be non-packed
+        else if(evtPixelFormat == GVSP_PIX_MONO10_PACKED || evtPixelFormat == GVSP_PIX_MONO12_PACKED 
+                || evtPixelFormat == GVSP_PIX_BAYRG10_PACKED || evtPixelFormat == GVSP_PIX_BAYRG12_PACKED){
+            convert = EVT_CONVERT_16BIT;
+        }
+    }
+
+    return convert;
 }
 
 
@@ -617,24 +781,30 @@ asynStatus ADEmergentVision::getFrameFormatND(CEmergentFrame* frame, NDDataType_
  * @params[out]:    pArray  -> NDArray output that is pushed out to ArrayData PV
  * @return:         status  -> success if copied, error if alloc/copy failed
  */
-asynStatus ADEmergentVision::evtFrame2NDArray(CEmergentFrame* frame, NDArray** pArray){
+asynStatus ADEmergentVision::evtFrame2NDArray(CEmergentFrame* evtFrame, CEmergentFrame* evtConvertFrame, NDArray** pArray){
     const char* functionName = "evtFrame2NDArray";
     asynStatus status = asynSuccess;
+    
     size_t dims[3];
     int ndims;
-    NDDataType_t dataType;
-    NDColorMode_t colorMode;
+    int dataType;
+    int colorMode;
     int xsize;
     int ysize;
     NDArrayInfo arrayInfo;
-    status = getFrameFormatND(frame, &dataType, &colorMode);
+    //status = getFrameFormatND(frame, &dataType, &colorMode);
+    getIntegerParam(NDDataType, &dataType);
+    getIntegerParam(NDColorMode, &colorMode);
+
+    unsigned int convert = getConvertBitDepth(evtFrame->pixel_type);
+
     if(status == asynError){
-        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error computing dType and color mode\n", driverName, functionName);
+        ERR("Error computing dType and color mode");
         return asynError;
     }
     else{
-        xsize = frame->size_x;
-        ysize = frame->size_y;
+        xsize = evtFrame->size_x;
+        ysize = evtFrame->size_y;
         if(colorMode == NDColorModeMono) ndims = 2;
         else ndims = 3;
 
@@ -648,28 +818,36 @@ asynStatus ADEmergentVision::evtFrame2NDArray(CEmergentFrame* frame, NDArray** p
             dims[2] = ysize;
         }
 
-        this->pArrays[0] = pNDArrayPool->alloc(ndims, dims, dataType, 0, NULL);
+        this->pArrays[0] = pNDArrayPool->alloc(ndims, dims, (NDDataType_t) dataType, 0, NULL);
         if(this->pArrays[0]!=NULL) (*pArray) = this->pArrays[0];
         else{
             this->pArrays[0]->release();
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Unable to allocate array\n", driverName, functionName);
+            ERR("Unable to allocate array");
             return asynError;
         }
+        CEmergentFrame* targetFrame = evtFrame;
+        if (convert != EVT_CONVERT_NONE || (evtFrame->pixel_type == GVSP_PIX_MONO10_PACKED || evtFrame->pixel_type == GVSP_PIX_MONO12_PACKED)) {
+            EVT_FrameConvert(evtFrame, evtConvertFrame, convert, EVT_COLOR_CONVERT_NONE);
+            targetFrame = evtConvertFrame;
+        }
+
         (*pArray)->getInfo(&arrayInfo);
         size_t total_size = arrayInfo.totalBytes;
-        memcpy((unsigned char*)(*pArray)->pData, frame->imagePtr, total_size);
+        memcpy((unsigned char*)(*pArray)->pData, targetFrame->imagePtr, total_size);
         (*pArray)->pAttributeList->add("ColorMode", "Color Mode", NDAttrInt32, &colorMode);
-        int arrayCounter;
-        getIntegerParam(NDArrayCounter, &arrayCounter);
-        arrayCounter++;
-        setIntegerParam(NDArrayCounter, arrayCounter);
-        //refresh PVs
-        callParamCallbacks();
         getAttributes((*pArray)->pAttributeList);
         return asynSuccess;
     }
 }
 
+
+/**
+ * Wrapper function that accepts a void pointer as an input and output, and starts
+ * the main callback loop
+ * 
+ * @params: pPtr -> void pointer referencing the current driver object instance
+ * @returns: NULL pointer
+ */
 void* ADEmergentVision::evtCallbackWrapper(void* pPtr){
     ADEmergentVision* pEVT = (ADEmergentVision*) pPtr;
     pEVT->evtCallback();
@@ -685,69 +863,78 @@ void* ADEmergentVision::evtCallbackWrapper(void* pPtr){
  */
 void ADEmergentVision::evtCallback(){
     const char* functionName = "evtCallback";
+    int imageMode;
+    CEmergentFrame evtFrame;
+    CEmergentFrame evtFrameConvert;
+    asynStatus status;
 
+    int numFramesCollected = 1;
+    int uniqueIDCounter = 0;
+    int imageCounter;
+    int xsize, ysize;
+    unsigned int evtPixelType;
     this->imageThreadOpen = 1;
+    getIntegerParam(ADImageMode, &imageMode);
+
 
     while(this->imageCollectionThreadActive == 1){
         NDArray* pArray;
         NDArrayInfo arrayInfo;
-        CEmergentFrame frames[NUM_FRAMES];
-        asynStatus status;
-        int imageMode;
-        int imageCounter;
-        int xsize, ysize;
-        unsigned int evtPixelType;
-        int dataType;
-        int colorMode;
-        getIntegerParam(ADImageMode, &imageMode);
-        getIntegerParam(ADNumImagesCounter, &imageCounter);
+        // One frame for current image, one for conversion if necessary
+
+        getIntegerParam(ADNumImagesCounter, &uniqueIDCounter);
         getIntegerParam(ADSizeX, &xsize);
         getIntegerParam(ADSizeY, &ysize);
-        getIntegerParam(NDDataType, &dataType);
-        getIntegerParam(NDColorMode, &colorMode);
-        asynStatus convert = getFrameFormatEVT(&evtPixelType, (NDDataType_t) dataType, (NDColorMode_t) colorMode);
-        if(convert == asynError){
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error finding evt frame format\n", driverName, functionName);
+        
+        asynStatus current = getFrameFormatEVT(&evtPixelType);
+
+        if(current == asynError){
+            ERR("Error finding evt frame format");
         }
         else{
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Arm detector\n", driverName, functionName);
+
+            // variables storing if buffer allocation was successful, and whether evt cam ops were.
             EVT_ERROR alloc = EVT_SUCCESS;
-            EVT_ERROR err = EVT_CameraExecuteCommand(this->pcamera, "AcquisitionStart");
-            if(err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraExecuteCommand - AcqusitionStart");
+            EVT_ERROR err = EVT_SUCCESS;
 
-            frames[0].size_x = xsize;
-            frames[0].size_y = ysize;
-            frames[0].pixel_type = (PIXEL_FORMAT) evtPixelType;
+            // set sizes and pixel formats here
+            evtFrame.size_x = xsize;
+            evtFrame.size_y = ysize;
+            evtFrame.pixel_type = (PIXEL_FORMAT) evtPixelType;
 
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Arm detector\n", driverName, functionName);
-            //printf("allocating frame buffer command\n");
-            if(err == EVT_SUCCESS) alloc = EVT_AllocateFrameBuffer(this->pcamera, &frames[0], EVT_FRAME_BUFFER_ZERO_COPY);
+            evtFrameConvert.size_x = xsize;
+            evtFrameConvert.size_y = ysize;
+            evtFrameConvert.pixel_type = (PIXEL_FORMAT) evtPixelType;
+            evtFrameConvert.convertColor = EVT_COLOR_CONVERT_NONE;
+            evtFrameConvert.convertBitDepth = getConvertBitDepth((PIXEL_FORMAT) evtPixelType);
+
+            // allocate the framer buffers for our frame and conversion frame
+            alloc = EVT_AllocateFrameBuffer(this->pcamera, &evtFrame, EVT_FRAME_BUFFER_ZERO_COPY);
+            if (alloc == EVT_SUCCESS) alloc = EVT_AllocateFrameBuffer(this->pcamera, &evtFrameConvert, EVT_FRAME_BUFFER_DEFAULT);
+            
             if(alloc != EVT_SUCCESS) reportEVTError(alloc, "EVT_AllocateFrameBuffer");
             else {
 
-                asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Queue camera frame\n", driverName, functionName);
-                if (alloc == EVT_SUCCESS) err = EVT_CameraQueueFrame(this->pcamera, &frames[0]);
+                LOG("Queue camera frame");
+                if (alloc == EVT_SUCCESS) err = EVT_CameraQueueFrame(this->pcamera, &evtFrame);
                 if (err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraQueueFrame");
 
-                asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Triggering w/ software\n", driverName, functionName);
-                if (err == EVT_SUCCESS) err = EVT_CameraExecuteCommand(this->pcamera, "TriggerSoftware");
-                if (err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraExecuteCommand - TriggerSoftware");
+                //asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Triggering w/ software\n", driverName, functionName);
+                //if (err == EVT_SUCCESS) err = EVT_CameraExecuteCommand(this->pcamera, "TriggerSoftware");
+                //if (err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraExecuteCommand - TriggerSoftware");
 
-                asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Grabbing frame\n", driverName, functionName);
-                if (err == EVT_SUCCESS) err = EVT_CameraGetFrame(this->pcamera, &frames[0], EVT_INFINITE);
+                LOG("Grabbing frame");
+                if (err == EVT_SUCCESS) err = EVT_CameraGetFrame(this->pcamera, &evtFrame, EVT_INFINITE);
                 if (err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraGetFrame");
 
-                asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Stopping Acquisition\n", driverName, functionName);
-                if (err == EVT_SUCCESS) err = EVT_CameraExecuteCommand(&camera, "AcquisitionStop");
-                if (err != EVT_SUCCESS) reportEVTError(err, "EVT_CameraExecuteCommand - AcquisitonStop");
 
                 // Only process the frame if we successfully finished all of the above commands.
                 if (err == EVT_SUCCESS) {
-                    //printf("Converting to NDArray\n");
-                    status = evtFrame2NDArray(frames, &pArray);
+                    // Convert to an ND Array
+                    status = evtFrame2NDArray(&evtFrame, &evtFrameConvert, &pArray);
                     if (status == asynSuccess) {
                         //printf("Converted to NDArray\n");
-                        pArray->uniqueId = imageCounter;
+                        pArray->uniqueId = uniqueIDCounter;
                         updateTimeStamp(&pArray->epicsTS);
                         doCallbacksGenericPointer(pArray, NDArrayData, 0);
                         pArray->getInfo(&arrayInfo);
@@ -759,41 +946,46 @@ void ADEmergentVision::evtCallback(){
                         pArray->release();
                     }
 
-                    getIntegerParam(ADNumImagesCounter, &imageCounter);
+                    // Update the image counter
+                    getIntegerParam(NDArrayCounter, &imageCounter);
                     imageCounter++;
-                    setIntegerParam(ADNumImagesCounter, imageCounter);
+                    setIntegerParam(NDArrayCounter, imageCounter);
+                    callParamCallbacks();
 
                     if (status == asynError) {
                         this->imageThreadOpen = 0;
-                        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error converting to NDArray\n", driverName, functionName);
+                        ERR("Error converting to NDArray");
                         acquireStop();
                         break;
                     }
                     if (imageMode == ADImageSingle) {
                         this->imageThreadOpen = 0;
                         acquireStop();
-                        asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Done acquiring\n", driverName, functionName);
                     }
                     else if (imageMode == ADImageMultiple) {
-                        //printf("thinks it is multiple\n");
                         int numImages;
                         getIntegerParam(ADNumImages, &numImages);
 
-                        if (imageCounter == numImages) {
+                        if (numFramesCollected == numImages) {
                             this->imageThreadOpen = 0;
                             acquireStop();
-                            asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s::%s Done\n", driverName, functionName);
                         }
                     }
                 }
+                else{
+                    reportEVTError(err, functionName);
+                }
 
-                //If frame buffer allocation was successful, we need to deallocate the frame buffer no matter what.
-                //printf("RELEASING FRAME BUFFER\n");
-                err = EVT_ReleaseFrameBuffer(this->pcamera, &frames[0]);
+                //If frame buffer allocation was successful, we need to deallocate the frame buffer regardless
+                //of the status of later operations
+                err = EVT_ReleaseFrameBuffer(this->pcamera, &evtFrame);
+                if (err != EVT_SUCCESS) reportEVTError(err, "EVT_ReleaseFrameBuffer");
+                err = EVT_ReleaseFrameBuffer(this->pcamera, &evtFrameConvert);
                 if (err != EVT_SUCCESS) reportEVTError(err, "EVT_ReleaseFrameBuffer");
             }
         }
-        //printf("done with first loop iteration\n");
+        // count the number of frames in the current acquisition
+        numFramesCollected++;
     }
     this->imageThreadOpen = 0;
 }
@@ -804,43 +996,72 @@ void ADEmergentVision::evtCallback(){
 // -----------------------------------------------------------------------
 
 
-/* Getter and setter functions for setting the Framerate of the EVT Camera */
+/**
+ * Function that checks whether new value for camera parameter is valid
+ * 
+ * @params: newVal -> New integer parameter value
+ * @params: param -> Name of parameter
+ * @returns: valid -> true if new value is OK, false otherwise
+ */
+bool ADEmergentVision::isEVTInt32ParamValid(unsigned int newVal, const char* param){
 
+    const char* functionName = "validateEVTInt32Param";
+    if(this->connected == 0) return false;
+    bool valid = true;
+    unsigned int max, min, inc;
+    EVT_CameraGetUInt32ParamMax(this->pcamera, param, &max);
+    EVT_CameraGetUInt32ParamMin(this->pcamera, param, &min);
+    EVT_CameraGetUInt32ParamInc(this->pcamera, param, &inc);
+    if(newVal < min || newVal > max){
+        ERR_ARGS("Parameter %s must be between %d and %d!", param, min, max);
+        valid = false;
+    }
+    return valid;
+}
 
-asynStatus ADEmergentVision::getEVTFramerate(unsigned int* framerate){
-    const char* functionName = "getEVTFramerate";
+/**
+ * Function for getting the value of an integer parameter
+ * 
+ * 
+ * 
+ * 
+ */
+asynStatus ADEmergentVision::getEVTInt32Param(unsigned int* retVal, const char* param){
+    const char* functionName = "getEVTInt32Param";
     if(this->connected == 0) return asynError;
     asynStatus status = asynSuccess;
-    this->evt_status = EVT_CameraGetUInt32Param(this->pcamera, "FrameRate", framerate);
+    this->evt_status = EVT_CameraGetUInt32Param(this->pcamera, param, retVal);
     if(evt_status != EVT_SUCCESS){
         status = asynError;
-        reportEVTError(evt_status, functionName);
+        reportEVTError(evt_status, param);
     }
     return status;
 }
 
-asynStatus ADEmergentVision::setEVTFramerate(unsigned int framerate){
-    const char* functionName = "setEVTFramerate";
+asynStatus ADEmergentVision::setEVTInt32Param(unsigned int newVal, const char* param){
+    const char* functionName = "setEVTInt32Param";
     if(this->connected == 0) return asynError;
+    if(!isEVTInt32ParamValid(newVal, param)) return asynError;
+    
     asynStatus status = asynSuccess;
-    this->evt_status = EVT_CameraSetUInt32Param(this->pcamera, "FrameRate", framerate);
+    this->evt_status = EVT_CameraSetUInt32Param(this->pcamera, param, newVal);
     if(evt_status != EVT_SUCCESS){
         status = asynError;
+        printf("Failed to set %s to %d!\n", param, newVal);
         reportEVTError(evt_status, functionName);
     }
     else{
-        printf("Set Framerate to %d/s\n", framerate);
+        printf("Set %s to %d\n", param, newVal);
     }
     return status;
 }
 
-/* Getter and setter functions for setting the Offset X of the EVT Camera */
 
-asynStatus ADEmergentVision::getEVTOffsetX(unsigned int* offsetX){
-    const char* functionName = "getEVTOffsetX";
+asynStatus ADEmergentVision::getEVTBoolParam(bool* retVal, const char* param){
+    const char* functionName = "getEVTBoolParam";
     if(this->connected == 0) return asynError;
     asynStatus status = asynSuccess;
-    this->evt_status = EVT_CameraGetUInt32Param(this->pcamera, "OffsetX", offsetX);
+    this->evt_status = EVT_CameraGetBoolParam(this->pcamera, param, retVal);
     if(evt_status != EVT_SUCCESS){
         status = asynError;
         reportEVTError(evt_status, functionName);
@@ -848,294 +1069,19 @@ asynStatus ADEmergentVision::getEVTOffsetX(unsigned int* offsetX){
     return status;
 }
 
-asynStatus ADEmergentVision::setEVTOffsetX(unsigned int offsetX){
-    const char* functionName = "setEVTOffsetX";
+asynStatus ADEmergentVision::setEVTBoolParam(bool newVal, const char* param){
+    const char* functionName = "setEVTBoolParam";
     if(this->connected == 0) return asynError;
     asynStatus status = asynSuccess;
-    this->evt_status = EVT_CameraSetUInt32Param(this->pcamera, "OffsetX", offsetX);
+    this->evt_status = EVT_CameraSetBoolParam(this->pcamera, param, newVal);
     if(evt_status != EVT_SUCCESS){
         status = asynError;
         reportEVTError(evt_status, functionName);
     }
+    else if(newVal) printf("Enabled %s\n", param);
+    else printf("Disabled %s\n", param);
     return status;
 }
-
-/* Getter and setter functions for setting the Offset Y of the EVT Camera */
-
-asynStatus ADEmergentVision::getEVTOffsetY(unsigned int* offsetY){
-    const char* functionName = "getEVTOffsetY";
-    if(this->connected == 0) return asynError;
-    asynStatus status = asynSuccess;
-    this->evt_status = EVT_CameraGetUInt32Param(this->pcamera, "OffsetY", offsetY);
-    if(evt_status != EVT_SUCCESS){
-        status = asynError;
-        reportEVTError(evt_status, functionName);
-    }
-    return status;
-}
-
-asynStatus ADEmergentVision::setEVTOffsetY(unsigned int offsetY){
-    const char* functionName = "setEVTOffsetY";
-    if(this->connected == 0) return asynError;
-    asynStatus status = asynSuccess;
-    this->evt_status = EVT_CameraSetUInt32Param(this->pcamera, "OffsetY", offsetY);
-    if(evt_status != EVT_SUCCESS){
-        status = asynError;
-        reportEVTError(evt_status, functionName);
-    }
-    return status;
-}
-
-/* Getter and setter functions for setting the Packet size of the EVT Camera */
-
-asynStatus ADEmergentVision::getEVTPacketSize(unsigned int* packetSize){
-    const char* functionName = "getEVTPacketSize";
-    if(this->connected == 0) return asynError;
-    asynStatus status = asynSuccess;
-    this->evt_status = EVT_CameraGetUInt32Param(this->pcamera, "GevSCPPacketSize", packetSize);
-    if(evt_status != EVT_SUCCESS){
-        status = asynError;
-        reportEVTError(evt_status, functionName);
-    }
-    return status;
-}
-
-asynStatus ADEmergentVision::setEVTPacketSize(unsigned int packetSize){
-    const char* functionName = "setEVTPacketSize";
-    if(this->connected == 0) return asynError;
-    asynStatus status = asynSuccess;
-    this->evt_status = EVT_CameraSetUInt32Param(this->pcamera, "GevSCPPacketSize", packetSize);
-    if(evt_status != EVT_SUCCESS){
-        status = asynError;
-        reportEVTError(evt_status, functionName);
-    }
-    return status;
-}
-
-/* Getter and setter functions for setting the Gain of the EVT Camera */
-
-asynStatus ADEmergentVision::getEVTGain(unsigned int* gainValue){
-    const char* functionName = "getEVTGain";
-    if(this->connected == 0) return asynError;
-    asynStatus status = asynSuccess;
-    this->evt_status = EVT_CameraGetUInt32Param(this->pcamera, "Gain", gainValue);
-    if(evt_status != EVT_SUCCESS){
-        status = asynError;
-        reportEVTError(evt_status, functionName);
-    }
-    return status;
-}
-
-asynStatus ADEmergentVision::setEVTGain(unsigned int gainValue){
-    const char* functionName = "setEVTGain";
-    if(this->connected == 0) return asynError;
-    asynStatus status = asynSuccess;
-    this->evt_status = EVT_CameraSetUInt32Param(this->pcamera, "Gain", gainValue);
-    if(evt_status != EVT_SUCCESS){
-        status = asynError;
-        reportEVTError(evt_status, functionName);
-    }
-    return status;
-}
-
-/* Getter and setter functions for setting the Offset of the EVT Camera */
-
-asynStatus ADEmergentVision::getEVTOffset(unsigned int* offset){
-    const char* functionName = "getEVTOffset";
-    if(this->connected == 0) return asynError;
-    asynStatus status = asynSuccess;
-    this->evt_status = EVT_CameraGetUInt32Param(this->pcamera, "Offset", offset);
-    if(evt_status != EVT_SUCCESS){
-        status = asynError;
-        reportEVTError(evt_status, functionName);
-    }
-    return status;
-}
-
-asynStatus ADEmergentVision::setEVTOffset(unsigned int offset){
-    const char* functionName = "setEVTOffset";
-    if(this->connected == 0) return asynError;
-    asynStatus status = asynSuccess;
-    this->evt_status = EVT_CameraSetUInt32Param(this->pcamera, "Offset", offset);
-    if(evt_status != EVT_SUCCESS){
-        status = asynError;
-        reportEVTError(evt_status, functionName);
-    }
-    return status;
-}
-
-
-/* Getter and setter functions for setting the Buffer size of the EVT Camera */
-
-asynStatus ADEmergentVision::getEVTBufferNum(unsigned int* bufferNum){
-    const char* functionName = "getEVTBufferNum";
-    if(this->connected == 0) return asynError;
-    asynStatus status = asynSuccess;
-    this->evt_status = EVT_CameraGetUInt32Param(this->pcamera, "Offset", bufferNum);
-    if(evt_status != EVT_SUCCESS){
-        status = asynError;
-        reportEVTError(evt_status, functionName);
-    }
-    return status;
-}
-
-asynStatus ADEmergentVision::setEVTBufferNum(unsigned int bufferNum){
-    const char* functionName = "setEVTBufferNum";
-    if(this->connected == 0) return asynError;
-    asynStatus status = asynSuccess;
-    this->evt_status = EVT_CameraSetUInt32Param(this->pcamera, "Offset", bufferNum);
-    if(evt_status != EVT_SUCCESS){
-        status = asynError;
-        reportEVTError(evt_status, functionName);
-    }
-    return status;
-}
-
-/* Getter and setter functions for setting the LUT status of the EVT Camera */
-
-asynStatus ADEmergentVision::getEVTLUTStatus(bool* lutValue){
-    const char* functionName = "getEVTLUTStatus";
-    if(this->connected == 0) return asynError;
-    asynStatus status = asynSuccess;
-    this->evt_status = EVT_CameraGetBoolParam(this->pcamera, "LUTEnable", lutValue);
-    if(evt_status != EVT_SUCCESS){
-        status = asynError;
-        reportEVTError(evt_status, functionName);
-    }
-    return status;
-}
-
-asynStatus ADEmergentVision::setEVTLUTStatus(bool lutEnable){
-    const char* functionName = "setEVTLUTStatus";
-    if(this->connected == 0) return asynError;
-    asynStatus status = asynSuccess;
-    this->evt_status = EVT_CameraSetBoolParam(this->pcamera, "LUTEnable", lutEnable);
-    if(evt_status != EVT_SUCCESS){
-        status = asynError;
-        reportEVTError(evt_status, functionName);
-    }
-    return status;
-}
-
-/* Getter and setter functions for setting the Autogain function of the EVT Camera */
-
-asynStatus ADEmergentVision::getEVTAutoGain(bool* autoGainValue){
-    const char* functionName = "getEVTAutoGain";
-    if(this->connected == 0) return asynError;
-    asynStatus status = asynSuccess;
-    this->evt_status = EVT_CameraGetBoolParam(this->pcamera, "AutoGain", autoGainValue);
-    if(evt_status != EVT_SUCCESS){
-        status = asynError;
-        reportEVTError(evt_status, functionName);
-    }
-    return status;
-}
-
-asynStatus ADEmergentVision::setEVTAutoGain(bool autoGainEnable){
-    const char* functionName = "setEVTAutoGain";
-    if(this->connected == 0) return asynError;
-    asynStatus status = asynSuccess;
-    this->evt_status = EVT_CameraSetBoolParam(this->pcamera, "AutoGain", autoGainEnable);
-    if(evt_status != EVT_SUCCESS){
-        status = asynError;
-        reportEVTError(evt_status, functionName);
-    }
-    return status;
-}
-
-
-/* Getter and setter functions for setting the Buffer mode of the EVT Camera */
-
-asynStatus ADEmergentVision::getEVTBufferMode(bool* bufferMode){
-    const char* functionName = "getEVTBufferMode";
-    if(this->connected == 0) return asynError;
-    asynStatus status = asynSuccess;
-    this->evt_status = EVT_CameraGetBoolParam(this->pcamera, "BufferMode", bufferMode);
-    if(evt_status != EVT_SUCCESS){
-        status = asynError;
-        reportEVTError(evt_status, functionName);
-    }
-    return status;
-}
-
-asynStatus ADEmergentVision::setEVTBufferMode(bool bufferMode){
-    const char* functionName = "setEVTBufferMode";
-    if(this->connected == 0) return asynError;
-    asynStatus status = asynSuccess;
-    this->evt_status = EVT_CameraSetBoolParam(this->pcamera, "BufferMode", bufferMode);
-    if(evt_status != EVT_SUCCESS){
-        status = asynError;
-        reportEVTError(evt_status, functionName);
-    }
-    return status;
-}
-
-
-/* Getter and setter functions for setting the Exposure of the EVT Camera */
-
-asynStatus ADEmergentVision::getEVTExposureMax(unsigned int* maxExposure){
-    const char* functionName = "getEVTExposureMax";
-    if(this->connected == 0) return asynError;
-    asynStatus status = asynSuccess;
-    this->evt_status = EVT_CameraGetUInt32ParamMax(this->pcamera, "Exposure", maxExposure);
-    if(evt_status != EVT_SUCCESS){
-        status = asynError;
-        reportEVTError(evt_status, functionName);
-    }
-    return status;
-}
-
-asynStatus ADEmergentVision::getEVTExposureMin(unsigned int* minExposure){
-    const char* functionName = "getEVTExposureMin";
-    if(this->connected == 0) return asynError;
-    asynStatus status = asynSuccess;
-    this->evt_status = EVT_CameraGetUInt32ParamMin(this->pcamera, "Exposure", minExposure);
-    if(evt_status != EVT_SUCCESS){
-        status = asynError;
-        reportEVTError(evt_status, functionName);
-    }
-    return status;
-}
-
-asynStatus ADEmergentVision::getEVTExposureInc(unsigned int* incExposure){
-    const char* functionName = "getEVTExposureInc";
-    if(this->connected == 0) return asynError;
-    asynStatus status = asynSuccess;
-    this->evt_status = EVT_CameraGetUInt32ParamInc(this->pcamera, "Exposure", incExposure);
-    if(evt_status != EVT_SUCCESS){
-        status = asynError;
-        reportEVTError(evt_status, functionName);
-    }
-    return status;
-}
-
-
-asynStatus ADEmergentVision::setEVTExposure(unsigned int exposure){
-    const char* functionName = "setEVTExposure";
-    if(this->connected == 0) return asynError;
-    unsigned int maxExposure;
-    unsigned int minExposure;
-    asynStatus status;
-    getEVTExposureMax(&maxExposure);
-    getEVTExposureMin(&minExposure);
-    if(exposure >= minExposure && exposure <= maxExposure){
-        status = asynSuccess;
-        this->evt_status = EVT_CameraSetUInt32Param(this->pcamera, "Exposure", exposure);
-        if(evt_status != EVT_SUCCESS){
-            status = asynError;
-            reportEVTError(evt_status, functionName);
-        }
-        else{
-            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Set exposure to %d microseconds\n", driverName, functionName, exposure);
-        }
-    }
-    else {
-        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s ERROR, Exposure time can be between %d and %d in microseconds.\n", driverName, functionName, minExposure, maxExposure);
-        status = asynError;
-    }
-    return status;
-}
-
 
 
 // -----------------------------------------------------------------------
@@ -1160,7 +1106,7 @@ asynStatus ADEmergentVision::writeInt32(asynUser* pasynUser, epicsInt32 value){
 
     status = setIntegerParam(function, value);
     if(status != asynSuccess){
-        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error writing to PV\n", driverName, functionName);
+        ERR("Error writing to PV");
         return status;
     }
     else{
@@ -1175,22 +1121,60 @@ asynStatus ADEmergentVision::writeInt32(asynUser* pasynUser, epicsInt32 value){
         else if(function == ADImageMode){
             if(acquiring) acquireStop();
             if(value == ADImageSingle) setIntegerParam(ADNumImages, 1);
-            else if(value == ADImageMultiple) setIntegerParam(ADNumImages, 100);
+            else if(value == ADImageMultiple){
+                setIntegerParam(ADNumImages, 100);
+            }
         }
-        else if(function == ADEVT_Framerate) status = setEVTFramerate((unsigned int) value);
-        else if(function == ADEVT_OffsetX) status = setEVTOffsetX((unsigned int) value);
-        else if(function == ADEVT_OffsetY) status = setEVTOffsetY((unsigned int) value);
-        else if(function == ADEVT_BufferNum) status = setEVTBufferNum((unsigned int) value);
-        else if (function == ADEVT_LUTEnable) status = setEVTLUTStatus(value > 0);
-        else if (function == ADEVT_AutoGain) status = setEVTAutoGain(value > 0);
-        else if (function == ADEVT_BufferMode) status = setEVTBufferMode(value > 0);
+        else if(function == ADEVT_PixelFormat || function == NDColorMode){
+            unsigned int evtPixelFormat;
+            status = getFrameFormatEVT(&evtPixelFormat);
+            if(status == asynError){
+                ERR("Invalid pixel format selected!");
+            }
+            else{
+                string pixelFormatStr = getSupportedFormatStr((PIXEL_FORMAT) evtPixelFormat);
+                if(isFrameFormatValid(pixelFormatStr.c_str())){
+                    EVT_ERROR err = EVT_CameraSetEnumParam(this->pcamera, "PixelFormat", pixelFormatStr.c_str());
+                    if(err != EVT_SUCCESS){
+                        reportEVTError(err, functionName);
+                        status = asynError;
+                    }
+                    else printf("Set camera pixel format parameter: %s\n", pixelFormatStr.c_str());
+                }
+                else{
+                    ERR_ARGS("Unsupported Mode! Supported: %s", this->supportedModes);
+                    updateStatus("Invalid pixel format + color mode");
+                }
+            }
+        }
+        else if(function == ADEVT_Framerate) status = setEVTInt32Param((unsigned int) value, "FrameRate");
+        else if(function == ADEVT_OffsetX) status = setEVTInt32Param((unsigned int) value, "OffsetX");
+        else if(function == ADEVT_OffsetY) status = setEVTInt32Param((unsigned int) value, "OffsetY");
+        //else if(function == ADEVT_BufferNum) status = setEVTInt32Param((unsigned int) value, "BufferNum");
+        else if(function == ADEVT_LUTEnable) status = setEVTBoolParam(value > 0, "LUTEnable");
+        else if(function == ADEVT_AutoGain) status = setEVTBoolParam(value > 0, "AutoGain");
+        else if(function == ADEVT_BufferMode){
+            EVT_ERROR err;
+            if(value > 0) err = EVT_CameraSetEnumParam(this->pcamera, "BufferMode", "On");
+            else err = EVT_CameraSetEnumParam(this->pcamera, "BufferMode", "Off");
+            if(err != EVT_SUCCESS){
+                status = asynError;
+                reportEVTError(err, functionName);
+            }
+        }
+        else if(function == ADSizeX) status = setEVTInt32Param((unsigned int) value, "Width");
+        else if(function == ADSizeY) status = setEVTInt32Param((unsigned int) value, "Height");
         else if(function < ADEVT_FIRST_PARAM){
             status = ADDriver::writeInt32(pasynUser, value);
         }
     }
     callParamCallbacks();
-    if(status == asynError) asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s ERROR status=%d, function=%d, value=%d\n", driverName, functionName, status, function, value);
-    else asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s function=%d value=%d\n", driverName, functionName, function, value);
+    if(status == asynError){
+        ERR_ARGS("ERROR status=%d, function=%d, value=%d\n", status, function, value);
+    }
+    else{
+        LOG_ARGS("function=%d value=%d\n", function, value);
+    }
     return status;
 }
 
@@ -1215,18 +1199,21 @@ asynStatus ADEmergentVision::writeFloat64(asynUser* pasynUser, epicsFloat64 valu
     if(function == ADAcquireTime){
         // exposure time is an integer in microseconds. Input will be in milliseconds.
         unsigned int exposureTime = (unsigned int) (value * 1000);
-        status = setEVTExposure(exposureTime);
+        printf("Trying to set exposure to %d ms...\n", exposureTime);
+        status = setEVTInt32Param(exposureTime, "Exposure");
     }
     else if(function == ADGain) {
         unsigned int gain = (unsigned int) (value * 1000);
-        status = setEVTGain(gain);
+        status = setEVTInt32Param(gain, "Gain");
     }
     else if(function < ADEVT_FIRST_PARAM){
         status = ADDriver::writeFloat64(pasynUser, value);
     }
     callParamCallbacks();
-    if(status == asynError) asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s ERROR status=%d, function=%d, value=%lf\n", driverName, functionName, status, function, value);
-    else asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s function=%d value=%lf\n", driverName, functionName, function, value);
+    if(status == asynError){
+        ERR_ARGS("ERROR status=%d, function=%d, value=%lf\n", status, function, value);
+    }
+    else LOG_ARGS("function=%d value=%lf\n", function, value);
     return status;
 }
 
@@ -1242,7 +1229,7 @@ asynStatus ADEmergentVision::writeFloat64(asynUser* pasynUser, epicsFloat64 valu
  */
 void ADEmergentVision::report(FILE* fp, int details){
     const char* functionName = "report";
-    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s reporting to external log file\n",driverName, functionName);
+    LOG("Reporting to external log file");
     fprintf(fp, "--------------------------------------\n");
     fprintf(fp, "Connected to EVT device\n");
     fprintf(fp, "--------------------------------------\n");
@@ -1289,7 +1276,7 @@ ADEmergentVision::ADEmergentVision(const char* portName, const char* serialNumbe
     setStringParam(NDDriverVersion, versionString);
 
     if(strlen(serialNumber) == 0){
-        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Error: invalid serial number passed\n", driverName, functionName);
+        ERR("Error: invalid serial number passed");
         status = asynError;
     }
     else{
@@ -1309,7 +1296,7 @@ ADEmergentVision::ADEmergentVision(const char* portName, const char* serialNumbe
     createParam(ADEVT_AutoGainString,           asynParamInt32,     &ADEVT_AutoGain);
 
     if(status == asynError)
-        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s Failed to connect to device\n", driverName, functionName);
+        ERR("Failed to connect to device");
 
     epicsAtExit(exitCallback, (void*) this);
 }
@@ -1317,12 +1304,11 @@ ADEmergentVision::ADEmergentVision(const char* portName, const char* serialNumbe
 
 /* ADEmergentVision Destructor */
 ADEmergentVision::~ADEmergentVision(){
-    const char* functionName = "~ADEmergentVision";
     printf("Uninitializing Emergent Vision Detector API.\n");
     this->lock();
     disconnectFromDeviceEVT();
     this->unlock();
-    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s ADEmergentVision Driver Exiting...\n", driverName, functionName);
+    printf("ADEmergentVision Driver Exiting...\n");
 }
 
 
@@ -1343,7 +1329,7 @@ static const iocshArg EVTConfigArg5 = { "stackSize",        iocshArgInt };
 /* Array of config args */
 static const iocshArg * const EVTConfigArgs[] =
         { &EVTConfigArg0, &EVTConfigArg1, &EVTConfigArg2,
-        &EVTConfigArg3, &EVTConfigArg4, &EVTConfigArg5};
+        &EVTConfigArg3, &EVTConfigArg4, &EVTConfigArg5 };
 
 
 /* what function to call at config */
