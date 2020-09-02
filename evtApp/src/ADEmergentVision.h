@@ -18,7 +18,7 @@
 // version numbers
 #define ADEMERGENTVISION_VERSION        0
 #define ADEMERGENTVISION_REVISION       0
-#define ADEMERGENTVISION_MODIFICATION   1
+#define ADEMERGENTVISION_MODIFICATION   2
 
 #define SUPPORTED_MODE_BUFFER_SIZE 1000
 
@@ -139,7 +139,7 @@ class ADEmergentVision : ADDriver {
     // EVT Image acquisition functions
     // -----------------------------
 
-    asynStatus setCameraValues();
+    asynStatus setDefaultCameraValues();
     string getSupportedFormatStr(PIXEL_FORMAT evtPixelFormat);
     bool isFrameFormatValid(const char* formatStr);
     asynStatus getFrameFormatEVT(unsigned int* evtPixelType);
