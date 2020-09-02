@@ -18,7 +18,7 @@
 // version numbers
 #define ADEMERGENTVISION_VERSION        0
 #define ADEMERGENTVISION_REVISION       0
-#define ADEMERGENTVISION_MODIFICATION   1
+#define ADEMERGENTVISION_MODIFICATION   2
 
 
 // includes
