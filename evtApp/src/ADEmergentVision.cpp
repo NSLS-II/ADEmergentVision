@@ -750,14 +750,20 @@ unsigned int ADEmergentVision::getConvertBitDepth(PIXEL_FORMAT evtPixelFormat) {
 
     getIntegerParam(NDDataType, &dataType);
 
+    // convert 8 bit types to 16 bit if such configuration is detected
     if (evtPixelFormat == GVSP_PIX_MONO8 || evtPixelFormat == GVSP_PIX_RGB8 || evtPixelFormat == GVSP_PIX_BAYRG8) {
         if ((NDDataType_t)dataType == NDUInt16 || (NDDataType_t)dataType == NDInt16)
             convert = EVT_CONVERT_16BIT;
     }
     else {
+        // downconvert to 8 bit otherwise
         if ((NDDataType_t)dataType == NDUInt8 || (NDDataType_t)dataType == NDInt8)
             convert = EVT_CONVERT_8BIT;
-        else convert = EVT_CONVERT_16BIT;
+        // If the mode is packed we must convert it to be non-packed
+        else if(evtPixelFormat == GVSP_PIX_MONO10_PACKED || evtPixelFormat == GVSP_PIX_MONO12_PACKED 
+                || evtPixelFormat == GVSP_PIX_BAYRG10_PACKED || evtPixelFormat == GVSP_PIX_BAYRG12_PACKED){
+            convert = EVT_CONVERT_16BIT;
+        }
     }
 
     return convert;
