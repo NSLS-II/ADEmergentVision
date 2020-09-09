@@ -491,10 +491,10 @@ bool ADEmergentVision::isFrameFormatValid(const char* formatStr){
     bool valid = false;
     char temp[SUPPORTED_MODE_BUFFER_SIZE];
     memcpy(temp, this->supportedModes, SUPPORTED_MODE_BUFFER_SIZE);
-    char* enumMember = strtok_s(temp, ",", &next_token);
+    char* enumMember = strtok_s(temp, ",", &nextToken);
     while(enumMember != NULL){
         if(strcmp(formatStr, enumMember) == 0) valid = true;
-        enumMember = strtok_s(NULL, ",", &next_token);
+        enumMember = strtok_s(NULL, ",", &nextToken);
     }
     return valid;
 }

@@ -1,1 +1,7 @@
 file "ADBase_settings.req",       P=$(P),  R=cam1:
+$(P)$(R)EVTPixelFormat
+$(P)$(R)EVTFramerate
+$(P)$(R)EVTOffsetX
+$(P)$(R)EVTOffsetY
+$(P)$(R)EVTLUTEnable
+$(P)$(R)EVTAutoGain
