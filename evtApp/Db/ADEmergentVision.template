@@ -184,3 +184,108 @@ record(bi, "$(P)$(R)EVTAutoGain_RBV"){
     field(ONAM, "Enable")
     field(SCAN, "I/O Intr")
 }
+
+
+record(mbbo, "$(P)$(R)EVTGpiStartMode"){
+    field(DTYP, "asynInt32")
+    field(OUT, "@asyn($(PORT),$(ADDR), $(TIMEOUT))EVT_GPI_START_MODE")
+    field(VAL, "0")
+    info(autosaveFields, "VAL")
+}
+
+record(mbbi, "$(P)$(R)EVTGpiStartMode_RBV"){
+    field(DTYP, "asynInt32")
+    field(INP, "@asyn($(PORT),$(ADDR), $(TIMEOUT))EVT_GPI_START_MODE")
+    field(VAL, "0")
+    field(SCAN, "I/O Intr")
+}
+
+
+record(mbbo, "$(P)$(R)EVTGpiStartEvent"){
+    field(DTYP, "asynInt32")
+    field(OUT, "@asyn($(PORT),$(ADDR), $(TIMEOUT))EVT_GPI_START_EVENT")
+    field(VAL, "0")
+    info(autosaveFields, "VAL")
+}
+
+record(mbbi, "$(P)$(R)EVTGpiStartEvent_RBV"){
+    field(DTYP, "asynInt32")
+    field(INP, "@asyn($(PORT),$(ADDR), $(TIMEOUT))EVT_GPI_START_EVENT")
+    field(VAL, "0")
+    field(SCAN, "I/O Intr")
+}
+
+
+record(mbbo, "$(P)$(R)EVTGpiEndMode"){
+    field(DTYP, "asynInt32")
+    field(OUT, "@asyn($(PORT),$(ADDR), $(TIMEOUT))EVT_GPI_END_MODE")
+    field(VAL, "0")
+    info(autosaveFields, "VAL")
+}
+
+record(mbbi, "$(P)$(R)EVTGpiEndMode_RBV"){
+    field(DTYP, "asynInt32")
+    field(INP, "@asyn($(PORT),$(ADDR), $(TIMEOUT))EVT_GPI_END_MODE")
+    field(VAL, "0")
+    field(SCAN, "I/O Intr")
+}
+
+
+record(mbbo, "$(P)$(R)EVTGpiEndEvent"){
+    field(DTYP, "asynInt32")
+    field(OUT, "@asyn($(PORT),$(ADDR), $(TIMEOUT))EVT_GPI_END_EVENT")
+    field(VAL, "0")
+    info(autosaveFields, "VAL")
+}
+
+record(mbbi, "$(P)$(R)EVTGpiEndEvent_RBV"){
+    field(DTYP, "asynInt32")
+    field(INP, "@asyn($(PORT),$(ADDR), $(TIMEOUT))EVT_GPI_END_EVENT")
+    field(VAL, "0")
+    field(SCAN, "I/O Intr")
+}
+
+
+record(ao, "$(P)$(R)EVTTgFrameTime"){
+    field(DTYP, "asynInt32")
+    field(OUT, "@asyn($(PORT),$(ADDR), $(TIMEOUT))EVT_TG_FRAME_TIME")
+    field(VAL, "0")
+    info(autosaveFields, "VAL")
+}
+
+record(ai, "$(P)$(R)EVTTgFrameTime_RBV"){
+    field(DTYP, "asynInt32")
+    field(INP, "@asyn($(PORT),$(ADDR), $(TIMEOUT))EVT_TG_FRAME_TIME")
+    field(VAL, "0")
+    field(SCAN, "I/O Intr")
+}
+
+
+record(ao, "$(P)$(R)EVTTgHighTime"){
+    field(DTYP, "asynInt32")
+    field(OUT, "@asyn($(PORT),$(ADDR), $(TIMEOUT))EVT_TG_HIGH_TIME")
+    field(VAL, "0")
+    info(autosaveFields, "VAL")
+}
+
+record(ai, "$(P)$(R)EVTTgHighTime_RBV"){
+    field(DTYP, "asynInt32")
+    field(INP, "@asyn($(PORT),$(ADDR), $(TIMEOUT))EVT_TG_HIGH_TIME")
+    field(VAL, "0")
+    field(SCAN, "I/O Intr")
+}
+
+
+record(ao, "$(P)$(R)EVTTriggerDelay"){
+    field(DTYP, "asynInt32")
+    field(OUT, "@asyn($(PORT),$(ADDR), $(TIMEOUT))EVT_TRIGGER_DELAY")
+    field(VAL, "0")
+    info(autosaveFields, "VAL")
+}
+
+record(ai, "$(P)$(R)EVTTriggerDelay_RBV"){
+    field(DTYP, "asynInt32")
+    field(INP, "@asyn($(PORT),$(ADDR), $(TIMEOUT))EVT_TRIGGER_DELAY")
+    field(VAL, "0")
+    field(SCAN, "I/O Intr")
+}

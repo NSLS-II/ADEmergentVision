@@ -1263,6 +1263,25 @@ void ADEmergentVision::report(FILE* fp, int details){
  */
 ADEmergentVision::ADEmergentVision(const char* portName, const char* serialNumber, int maxBuffers, size_t maxMemory, int priority, int stackSize)
     : ADDriver(portName, 1, (int)NUM_EVT_PARAMS, maxBuffers, maxMemory, asynEnumMask, asynEnumMask, ASYN_CANBLOCK, 1, priority, stackSize){
+    createParam(ADEmergentVisionEvtTriggerDelayString, asynParamInt32, &ADEmergentVisionEvtTriggerDelay);
+    createParam(ADEmergentVisionEvtTgHighTimeString, asynParamInt32, &ADEmergentVisionEvtTgHighTime);
+    createParam(ADEmergentVisionEvtTgFrameTimeString, asynParamInt32, &ADEmergentVisionEvtTgFrameTime);
+    createParam(ADEmergentVisionEvtGpiEndEventString, asynParamInt32, &ADEmergentVisionEvtGpiEndEvent);
+    createParam(ADEmergentVisionEvtGpiEndModeString, asynParamInt32, &ADEmergentVisionEvtGpiEndMode);
+    createParam(ADEmergentVisionEvtGpiStartEventString, asynParamInt32, &ADEmergentVisionEvtGpiStartEvent);
+    createParam(ADEVT_GpiStartModeString, asynParamInt32, &ADEVT_GpiStartMode);
+
+    // Create PV Parameters
+    createParam(ADEVT_PixelFormatString,        asynParamInt32,     &ADEVT_PixelFormat);
+    createParam(ADEVT_FramerateString,          asynParamInt32,     &ADEVT_Framerate);
+    createParam(ADEVT_OffsetXString,            asynParamInt32,     &ADEVT_OffsetX);
+    createParam(ADEVT_OffsetYString,            asynParamInt32,     &ADEVT_OffsetY);
+    createParam(ADEVT_BufferModeString,         asynParamInt32,     &ADEVT_BufferMode);
+    createParam(ADEVT_BufferNumString,          asynParamInt32,     &ADEVT_BufferNum);
+    createParam(ADEVT_PacketSizeString,         asynParamInt32,     &ADEVT_PacketSize);
+    createParam(ADEVT_LUTEnableString,          asynParamInt32,     &ADEVT_LUTEnable);
+    createParam(ADEVT_AutoGainString,           asynParamInt32,     &ADEVT_AutoGain);
+
 
     asynStatus status;
 
@@ -1283,17 +1302,6 @@ ADEmergentVision::ADEmergentVision(const char* portName, const char* serialNumbe
         this->serialNumber = serialNumber;
         status = connectToDeviceEVT();
     }
-
-    // Create PV Parameters
-    createParam(ADEVT_PixelFormatString,        asynParamInt32,     &ADEVT_PixelFormat);
-    createParam(ADEVT_FramerateString,          asynParamInt32,     &ADEVT_Framerate);
-    createParam(ADEVT_OffsetXString,            asynParamInt32,     &ADEVT_OffsetX);
-    createParam(ADEVT_OffsetYString,            asynParamInt32,     &ADEVT_OffsetY);
-    createParam(ADEVT_BufferModeString,         asynParamInt32,     &ADEVT_BufferMode);
-    createParam(ADEVT_BufferNumString,          asynParamInt32,     &ADEVT_BufferNum);
-    createParam(ADEVT_PacketSizeString,         asynParamInt32,     &ADEVT_PacketSize);
-    createParam(ADEVT_LUTEnableString,          asynParamInt32,     &ADEVT_LUTEnable);
-    createParam(ADEVT_AutoGainString,           asynParamInt32,     &ADEVT_AutoGain);
 
     if(status == asynError)
         ERR("Failed to connect to device");
